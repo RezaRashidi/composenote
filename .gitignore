@@ -1,5 +1,8 @@
 .gradle
 build/
+common/build/
+android/build/
+desktop/build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/

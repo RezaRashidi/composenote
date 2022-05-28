@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS Projects (
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  Project_name TEXT NOT NULL,
+  Descreption TEXT NOT NULL,
+  Pritority TEXT NOT NULL,
+  Due_Date TEXT NOT NULL
+);
+INSERT INTO Projects (id,Project_name,Descreption,Pritority,Due_Date)
+ VALUES (100,"Project_name","Descreption","Pritority","Due_Date");
+
+selectAll:
+SELECT *
+FROM Projects;

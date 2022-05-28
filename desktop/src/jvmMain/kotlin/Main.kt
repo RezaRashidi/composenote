@@ -11,10 +11,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import com.rezarashidi.common.App
+import com.rezarashidi.common.AppPreview
 
 
 fun main() = application {
     Window(onCloseRequest = ::exitApplication) {
-        App()
+        AppPreview()
     }
 }

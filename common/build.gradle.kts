@@ -17,17 +17,26 @@ kotlin {
             kotlinOptions.jvmTarget = "11"
         }
         dependencies {
-            api("com.squareup.sqldelight:sqlite-driver:1.5.3")
+
         }
     }
+    @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
     sourceSets {
         val commonMain by getting {
             dependencies {
                 api(compose.runtime)
                 api(compose.foundation)
                 api(compose.material)
+                api(compose.preview)
+//                api(compose.uiTooling)
+//                api(compose.materialIconsExtended)
+//                api(compose.material3)
+//                api(compose.animationGraphics)
+//                api(compose.animation)
+//                api(compose.ui)
                 api("com.arkivanov.decompose:decompose:0.6.0")
                 api("com.arkivanov.decompose:extensions-compose-jetbrains:0.6.0")
+                implementation("com.squareup.sqldelight:coroutines-extensions:1.5.3")
 
 
             }
@@ -52,7 +61,8 @@ kotlin {
         }
         val desktopMain by getting {
             dependencies {
-                api(compose.preview)
+//                api(compose.preview)
+                api("com.squareup.sqldelight:sqlite-driver:1.5.3")
             }
         }
         val desktopTest by getting
@@ -71,9 +81,16 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 }
+dependencies {
+    implementation("androidx.compose.ui:ui-tooling-preview:1.1.1")
+}
 
 sqldelight {
     database("TodoDatabase") {
-        packageName = "com.rezarashidi.database"
+        packageName = "com.rezarashidi.common"
+//        schemaOutputDirectory =file("src/commonMain/kotlin/com/rezarashidi/common/sqldelight")
     }
-}
+    }
+//    Database { // This will be the name of the generated database class.
+//        packageName = "com.example"
+//    }
