@@ -13,6 +13,7 @@ version = "1.0-SNAPSHOT"
 kotlin {
     android()
     jvm("desktop") {
+
         compilations.all {
             kotlinOptions.jvmTarget = "11"
         }
@@ -22,6 +23,10 @@ kotlin {
     }
     @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
     sourceSets {
+
+
+
+
         val commonMain by getting {
             dependencies {
                 api(compose.runtime)
@@ -34,9 +39,12 @@ kotlin {
 //                api(compose.animationGraphics)
 //                api(compose.animation)
 //                api(compose.ui)
+                api ("ca.gosyer:compose-material-dialogs-core:0.6.6")
+                api ("ca.gosyer:compose-material-dialogs-datetime:0.6.6")
                 api("com.arkivanov.decompose:decompose:0.6.0")
                 api("com.arkivanov.decompose:extensions-compose-jetbrains:0.6.0")
                 implementation("com.squareup.sqldelight:coroutines-extensions:1.5.3")
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.2")
 
 
             }
@@ -47,6 +55,7 @@ kotlin {
             }
         }
         val androidMain by getting {
+            kotlin.srcDir("src/commonJvmAndroid/kotlin")
             dependencies {
                 api("androidx.appcompat:appcompat:1.4.1")
                 api("androidx.core:core-ktx:1.7.0")
@@ -60,6 +69,7 @@ kotlin {
             }
         }
         val desktopMain by getting {
+            kotlin.srcDir("src/commonJvmAndroid/kotlin")
             dependencies {
 //                api(compose.preview)
                 api("com.squareup.sqldelight:sqlite-driver:1.5.3")

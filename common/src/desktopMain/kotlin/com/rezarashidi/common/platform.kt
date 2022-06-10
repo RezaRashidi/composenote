@@ -22,41 +22,5 @@ actual class DriverFactory {
     }
 }
 
-actual fun DropdownMenuM(
-    Mexpanded: Boolean,
-    MonDismissRequest: () -> Unit,
-    Mfocusable: Boolean,
-    Mmodifier: Modifier,
-    Moffset: DpOffset,
-    Mcontent: @Composable ColumnScope.() -> Unit,
-) {
-    fun DropdownMenu(
-        expanded: Boolean =Mexpanded,
-        onDismissRequest: () -> Unit =MonDismissRequest,
-        focusable: Boolean =Mfocusable,
-        modifier: Modifier =Mmodifier,
-        offset: DpOffset =Moffset,
-        content: @Composable() (ColumnScope.() -> Unit) =Mcontent
-    ) {
-    }
-}
 
 
-@Composable
-actual fun DropdownMenuItemM(
-    MonClick: () -> Unit,
-    Mmodifier: Modifier,
-    Menabled: Boolean,
-    McontentPadding: PaddingValues,
-    MinteractionSource: MutableInteractionSource,
-    Mcontent: @Composable RowScope.() -> Unit,
-) {
-    DropdownMenuItem(
-        onClick=MonClick,
-        modifier = Mmodifier,
-        enabled = Menabled,
-        contentPadding = McontentPadding,
-        interactionSource = MinteractionSource,
-        content=Mcontent
-    )
-}
