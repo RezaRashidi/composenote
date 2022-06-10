@@ -22,9 +22,9 @@ fun AppPreview() {
 //    val fuck=db.todoDatabaseQueries.selectAll().executeAsList()
 //    Text(fuck.toString())
 
+    val db = remember {TodoDatabase(DriverFactory().createDriver()).todoDatabaseQueries}
 
 
-
-    App()
+    App(db)
 
 }

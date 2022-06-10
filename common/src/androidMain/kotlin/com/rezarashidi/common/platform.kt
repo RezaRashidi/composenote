@@ -1,5 +1,6 @@
 package com.rezarashidi.common
 
+import android.app.Application
 import android.content.Context
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.ColumnScope
@@ -18,9 +19,11 @@ actual fun getPlatformName(): String {
 
     return "Android"
 }
+lateinit var appContext: Context
+
+
 actual class DriverFactory(private val context: Context) {
     actual fun createDriver(): SqlDriver {
-        return AndroidSqliteDriver(TodoDatabase.Schema, context, "Projects.db")
+        return AndroidSqliteDriver(TodoDatabase.Schema, context, "test.db")
     }
 }
-

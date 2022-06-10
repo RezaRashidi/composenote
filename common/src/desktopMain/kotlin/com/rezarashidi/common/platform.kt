@@ -10,14 +10,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.DpOffset
 import com.squareup.sqldelight.db.SqlDriver
 import com.squareup.sqldelight.sqlite.driver.JdbcSqliteDriver
+import java.io.File
 
 actual fun getPlatformName(): String {
     return "Desktop"
 }
 actual class DriverFactory {
     actual fun createDriver(): SqlDriver {
-        val driver: SqlDriver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
-        TodoDatabase.Schema.create(driver)
+        val databasePath = File(System.getProperty("java.io.tmpdir"), "TodoDatabase.db")
+        val driver = JdbcSqliteDriver(url = "jdbc:sqlite:${databasePath.absolutePath}")
+        if(!databasePath.exists()){
+            TodoDatabase.Schema.create(driver)
+        }
+
         return driver
     }
 }
