@@ -3,8 +3,13 @@ CREATE TABLE IF NOT EXISTS Projects (
   Project_name TEXT NOT NULL,
   Descreption TEXT NOT NULL,
   Pritority INTEGER NOT NULL,
-  Due_Date TEXT NOT NULL
+  date  TEXT NOT NULL,
+  isdone INTEGER NOT NULL
+
 );
+
+getProjectdoneByid:
+UPDATE Projects SET isdone =1 WHERE id=:id;
 -- INSERT INTO Projects (id,Project_name,Descreption,Pritority,Due_Date)
 --  VALUES (100,"Project_name","Descreption","Pritority","Due_Date");
 
@@ -16,4 +21,85 @@ getProjectByID:
 SELECT * FROM Projects WHERE id = :id;
 
 insertProject:
-INSERT OR REPLACE  INTO Projects VALUES (?,?,?,?,?);
+INSERT OR REPLACE  INTO Projects VALUES (?,?,?,?,?,?);
+
+deleteProject:
+DELETE FROM Projects WHERE id = :id;
+
+
+CREATE TABLE IF NOT EXISTS Tasks (
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  Task_name TEXT NOT NULL,
+  Descreption TEXT NOT NULL,
+  ProjectID INTEGER,
+  Difficulty INTEGER NOT NULL,
+  Urgency INTEGER NOT NULL,
+  timeInHour INTEGER NOT NULL,
+  timeInMinute INTEGER NOT NULL,
+  dailyRepeat INTEGER NOT NULL,
+  tags TEXT,
+  reward INTEGER NOT NULL,
+  isdone INTEGER NOT NULL
+);
+
+
+getAllTasks:
+SELECT *
+FROM Tasks;
+
+getTasksByID:
+SELECT * FROM Tasks WHERE id = :id;
+
+deleteTask:
+DELETE FROM Tasks WHERE id = :id;
+
+
+insertTasks:
+INSERT OR REPLACE  INTO Tasks VALUES (?,?,?,?,?,?,?,?,?,?,?,?);
+
+getTasksByProjectID:
+SELECT * FROM Tasks WHERE ProjectID = :id;
+
+getTaskdoneByid:
+UPDATE Tasks SET isdone =1 WHERE id=:id;
+
+getTasksBytagID:
+SELECT * FROM Tasks WHERE tags LIKE ('% ' || :tag) OR tags LIKE (:tag || ' %');
+
+
+CREATE TABLE IF NOT EXISTS Timerecord (
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  TaskID INTEGER NOT NULL,
+  lenth INTEGER NOT NULL,
+  date TEXT NOT NULL
+);
+
+
+getAllTimerecord:
+SELECT *
+FROM Timerecord;
+
+insertTimerecord:
+INSERT OR REPLACE  INTO Timerecord VALUES (?,?,?,?);
+
+
+getTimerecordByTaskID:
+SELECT * FROM Timerecord WHERE TaskID = :id;
+
+
+CREATE TABLE IF NOT EXISTS dailiess (
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  TaskID INTEGER NOT NULL
+);
+
+getAlldailiess:
+SELECT *
+FROM dailiess;
+
+insertdailiess:
+INSERT OR REPLACE  INTO dailiess VALUES (?,?);
+
+
+
+deletedailiess:
+DELETE FROM dailiess WHERE TaskID = :id;
