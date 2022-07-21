@@ -18,9 +18,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.rezarashidi.common.Projects
+import com.rezarashidi.common.Tasks
 import com.rezarashidi.common.TodoDatabaseQueries
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import kotlinx.coroutines.launch
+
+
+
 
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalAnimationApi::class)
@@ -28,11 +32,138 @@ import kotlinx.coroutines.launch
 fun projectList(db: TodoDatabaseQueries) {
     val scaffoldState = rememberScaffoldState(rememberDrawerState(DrawerValue.Closed))
     val scrollState = rememberScrollState()
+    val scrollStatetask = rememberScrollState()
     val scope = rememberCoroutineScope()
     val openDialog: MutableState<Boolean> = remember { mutableStateOf(false) }
     val ScrollState = rememberScrollState ()
     val alpha: Float by animateFloatAsState(if (!openDialog.value) 0f else 0.5f)
-    var selectproject: MutableState<Projects?> = remember { mutableStateOf<Projects? >(null) }
+    val selectproject: MutableState<Projects?> = remember { mutableStateOf<Projects? >(null) }
+    val showbuttom: MutableState<Boolean> = remember {
+        mutableStateOf(true)
+    }
+    val selecttask: MutableState<Tasks?> = remember { mutableStateOf(null) }
+
+    @Composable
+    fun allprojects(){
+
+        Column(modifier = Modifier.verticalScroll(scrollState)) {
+            val x=openDialog.value //for recomposition
+            db.getAllProjects().executeAsList().forEach {
+                val dismissState = rememberDismissState(initialValue = DismissValue.Default)
+                SwipeToDismiss(
+                    state = dismissState,
+                    /***  create dismiss alert Background */
+                    background = {
+
+                        val direction = dismissState.dismissDirection
+                        if (direction == DismissDirection.EndToStart ) {
+                            if(!dismissState.isDismissed(DismissDirection.EndToStart))
+                                Row(
+                                    modifier = Modifier.padding(20.dp)
+                                        .fillMaxSize()
+                                    , horizontalArrangement = Arrangement.End, verticalAlignment =Alignment.CenterVertically
+                                ){
+                                    Text("Delete", color = Color.Red, style = MaterialTheme.typography.h4)
+                                }
+
+                            if(dismissState.isDismissed(DismissDirection.EndToStart))
+                                db.deleteProject(it.id)
+                        }
+
+                        if (direction == DismissDirection.StartToEnd ) {
+                            if(!dismissState.isDismissed(DismissDirection.StartToEnd))
+                                Row(
+                                    modifier = Modifier.padding(20.dp)
+                                        .fillMaxSize()
+                                    , horizontalArrangement = Arrangement.Start, verticalAlignment =Alignment.CenterVertically
+                                ){
+                                    Text("Done", color = Color.Cyan, style = MaterialTheme.typography.h4)
+                                }
+
+                            if(dismissState.isDismissed(DismissDirection.StartToEnd))
+                                db.getProjectByID(it.id)
+                        }
+
+                    },
+                    /**** Dismiss Content */
+                    dismissContent = {
+                        if(!dismissState.isDismissed(DismissDirection.EndToStart))
+                            Box(Modifier.clickable {
+                                selectproject.value=it
+//                                openDialog.value=true
+                            }){
+                                projectItem(it,db)
+                            }
+
+                    },
+                    /*** Set Direction to dismiss */
+                    directions = setOf(DismissDirection.EndToStart, DismissDirection.StartToEnd),
+                )
+            }
+
+
+        }
+    }
+
+    @Composable
+    fun getprojectTasks(){
+        Column(modifier = Modifier.verticalScroll(scrollStatetask)) {
+            selectproject.value?.let {
+                val   alltask = db.getTasksByProjectID(it.id).executeAsList()
+                alltask.forEach {
+                    val dismissState = rememberDismissState(initialValue = DismissValue.Default)
+                    SwipeToDismiss(
+                        state = dismissState,
+                        /***  create dismiss alert Background */
+                        background = {
+                            val direction = dismissState.dismissDirection
+                            if (direction == DismissDirection.EndToStart) {
+                                if (!dismissState.isDismissed(DismissDirection.EndToStart))
+                                    Row(
+                                        modifier = Modifier.padding(20.dp)
+                                            .fillMaxSize(),
+                                        horizontalArrangement = Arrangement.End,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("Delete", color = Color.Red, style = MaterialTheme.typography.h4)
+                                    }
+
+                                if (dismissState.isDismissed(DismissDirection.EndToStart))
+                                    db.deleteTask(it.id)
+                            }
+
+                            if (direction == DismissDirection.StartToEnd) {
+                                if (!dismissState.isDismissed(DismissDirection.StartToEnd))
+                                    Row(
+                                        modifier = Modifier.padding(20.dp)
+                                            .fillMaxSize(),
+                                        horizontalArrangement = Arrangement.Start,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("Done", color = Color.Cyan, style = MaterialTheme.typography.h4)
+                                    }
+
+                                if (dismissState.isDismissed(DismissDirection.StartToEnd))
+                                    db.getTaskdoneByid(it.id)
+                            }
+                        },
+                        /**** Dismiss Content */
+                        dismissContent = {
+                            if (!dismissState.isDismissed(DismissDirection.EndToStart) && !openDialog.value) {
+                                taskItem(db = db, it, showbuttom, openDialog, selecttask)
+                            }
+                        },
+                        /*** Set Direction to dismiss */
+                        directions = setOf(DismissDirection.EndToStart, DismissDirection.StartToEnd),
+                    )
+                }
+            }
+
+
+        }
+
+
+    }
 
     Box {
         Scaffold(
@@ -61,63 +192,14 @@ fun projectList(db: TodoDatabaseQueries) {
             },
             drawerContent = { Text(text = "drawerContent") },
             content = {
-                Column(modifier = Modifier.verticalScroll(scrollState)) {
-                    val x=openDialog.value //for recomposition
-                    db.getAllProjects().executeAsList().forEach {
-                        val dismissState = rememberDismissState(initialValue = DismissValue.Default)
-                        SwipeToDismiss(
-                            state = dismissState,
-                            /***  create dismiss alert Background */
-                            background = {
 
-                                val direction = dismissState.dismissDirection
-                                if (direction == DismissDirection.EndToStart ) {
-                                    if(!dismissState.isDismissed(DismissDirection.EndToStart))
-                                        Row(
-                                            modifier = Modifier.padding(20.dp)
-                                                .fillMaxSize()
-                                            , horizontalArrangement = Arrangement.End, verticalAlignment =Alignment.CenterVertically
-                                        ){
-                                            Text("Delete", color = Color.Red, style = MaterialTheme.typography.h4)
-                                        }
-
-                                    if(dismissState.isDismissed(DismissDirection.EndToStart))
-                                        db.deleteProject(it.id)
-                                }
-
-                                if (direction == DismissDirection.StartToEnd ) {
-                                    if(!dismissState.isDismissed(DismissDirection.StartToEnd))
-                                        Row(
-                                            modifier = Modifier.padding(20.dp)
-                                                .fillMaxSize()
-                                            , horizontalArrangement = Arrangement.Start, verticalAlignment =Alignment.CenterVertically
-                                        ){
-                                            Text("Done", color = Color.Cyan, style = MaterialTheme.typography.h4)
-                                        }
-
-                                    if(dismissState.isDismissed(DismissDirection.StartToEnd))
-                                        db.getProjectByID(it.id)
-                                }
-
-                            },
-                            /**** Dismiss Content */
-                            dismissContent = {
-                                if(!dismissState.isDismissed(DismissDirection.EndToStart))
-                                    Box(Modifier.clickable {
-                                        selectproject.value=it
-                                        openDialog.value=true
-                                    }){
-                                        projectItem(it,db)
-                                    }
-
-                            },
-                            /*** Set Direction to dismiss */
-                            directions = setOf(DismissDirection.EndToStart, DismissDirection.StartToEnd),
-                        )
-                    }
-
+                if (selectproject.value == null) {
+                    allprojects()
+                }else{
+                    getprojectTasks()
 
                 }
+
 
             },
 //        bottomBar = { BottomAppBar() { Text("BottomAppBar") } }

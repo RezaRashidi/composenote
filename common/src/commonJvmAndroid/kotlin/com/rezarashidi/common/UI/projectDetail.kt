@@ -17,8 +17,6 @@ import com.vanpra.composematerialdialogs.MaterialDialog
 import com.vanpra.composematerialdialogs.datetime.date.datepicker
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import kotlinx.coroutines.launch
-
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun projectDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, Project: MutableState<Projects?>? = null) {
 
