@@ -22,10 +22,12 @@ fun projectDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, Pr
 
     val projectName = remember { mutableStateOf(TextFieldValue(Project?.value?.Project_name ?: "")) }
     val descreption = remember { mutableStateOf(TextFieldValue(Project?.value?.Descreption ?: "")) }
-    val date = remember { mutableStateOf(Project?.value?.date ?: "") }
+    val dateStart = remember { mutableStateOf(Project?.value?.Startdate ?: "") }
+    val dateEnd = remember { mutableStateOf(Project?.value?.Enddate ?: "") }
     val pritoritynames = listOf<String>("Low", "Medium", "High")
     var sliderPosition by remember { mutableStateOf(Project?.value?.Pritority?.toFloat() ?: 1f) }
-    val dialogState = rememberMaterialDialogState()
+    val dialogStateStart = rememberMaterialDialogState()
+    val dialogStateEnd = rememberMaterialDialogState()
     var isdone by remember { mutableStateOf((Project?.value?.isdone == 1L)) }
     val scope = rememberCoroutineScope()
 //     val db= Projects()
@@ -47,24 +49,46 @@ fun projectDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, Pr
         Text(text = "Pritority:", modifier = Modifier.align(alignment = Alignment.Start))
         Text(text = pritoritynames[sliderPosition.toInt() - 1])
         Slider(value = sliderPosition, onValueChange = { sliderPosition = it }, steps = 1, valueRange = 1f..3f)
-        Text(text = "Due Date:", modifier = Modifier.align(alignment = Alignment.Start))
 
-        MaterialDialog(dialogState = dialogState, buttons = {
+        Text(text = "start Date:", modifier = Modifier.align(alignment = Alignment.Start))
+
+        MaterialDialog(dialogState = dialogStateStart, buttons = {
             positiveButton("Ok")
             negativeButton("Cancel")
         }) {
             datepicker {
-                date.value = it.toString()
+                dateStart.value = it.toString()
+            }
+        }
+        OutlinedTextField(dateStart.value, onValueChange = {
+
+        }, label = {
+            Text("Start date")
+        }, readOnly = true, enabled = false, modifier = Modifier.fillMaxWidth().padding(10.dp).clickable {
+            scope.launch {
+                dialogStateStart .show()
+
+            }
+        })
+
+        Text(text = "Due Date:", modifier = Modifier.align(alignment = Alignment.Start))
+
+        MaterialDialog(dialogState = dialogStateEnd, buttons = {
+            positiveButton("Ok")
+            negativeButton("Cancel")
+        }) {
+            datepicker {
+                dateEnd.value = it.toString()
             }
         }
 
-        OutlinedTextField(date.value, onValueChange = {
+        OutlinedTextField(dateEnd.value, onValueChange = {
 
         }, label = {
             Text("date")
         }, readOnly = true, enabled = false, modifier = Modifier.fillMaxWidth().padding(10.dp).clickable {
             scope.launch {
-                dialogState.show()
+                dialogStateEnd.show()
 
             }
         })
@@ -96,7 +120,8 @@ fun projectDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, Pr
                         projectName.value.text,
                         descreption.value.text,
                         sliderPosition.toLong(),
-                        date.value,
+                        dateStart.value,
+                        dateEnd.value,
                         if (isdone) 1 else 0
                     )
 
