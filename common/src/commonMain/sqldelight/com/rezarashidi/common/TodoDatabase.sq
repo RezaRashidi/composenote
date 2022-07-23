@@ -3,7 +3,8 @@ CREATE TABLE IF NOT EXISTS Projects (
   Project_name TEXT NOT NULL,
   Descreption TEXT NOT NULL,
   Pritority INTEGER NOT NULL,
-  date  TEXT NOT NULL,
+  Startdate  TEXT NOT NULL,
+  Enddate  TEXT NOT NULL,
   isdone INTEGER NOT NULL
 
 );
@@ -21,7 +22,7 @@ getProjectByID:
 SELECT * FROM Projects WHERE id = :id;
 
 insertProject:
-INSERT OR REPLACE  INTO Projects VALUES (?,?,?,?,?,?);
+INSERT OR REPLACE  INTO Projects VALUES (?,?,?,?,?,?,?);
 
 deleteProject:
 DELETE FROM Projects WHERE id = :id;
