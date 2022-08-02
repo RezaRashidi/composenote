@@ -13,6 +13,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.rezarashidi.common.TodoDatabaseQueries
+import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
 
 @Composable
@@ -33,17 +37,13 @@ fun dailiesAddList(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries) {
                                 db.getProjectByID(it1).executeAsOne().Project_name
                             }) , modifier = Modifier.padding(5.dp))
                         }
-                        Text("Reward: "+it.reward, modifier = Modifier.padding(5.dp))
-                        Text("time: "+it.timeInHour+" : "+it.timeInMinute, modifier = Modifier.padding(5.dp))
-                        if (it.ProjectID != null) {
-                            Text(("Project:" + it.ProjectID.let { it1 ->
-                                db.getProjectByID(it1).executeAsOne().Project_name
-                            }) , modifier = Modifier.padding(5.dp))
-                        }
+                        Text("Reward: "+it.reward+"px", modifier = Modifier.padding(5.dp))
+                        Text("time: "+it.timeInHour+"h : "+it.timeInMinute+"m", modifier = Modifier.padding(5.dp))
+
                     }
                     OutlinedButton(
                         {
-                            db.insertdailiess(null, it.id)
+                            db.insertdailiess(null, it.id, Clock.System.now().epochSeconds)
                         }, border = BorderStroke(2.dp, color = MaterialTheme.colors.primary),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.padding(10.dp)

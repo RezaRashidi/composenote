@@ -2,30 +2,31 @@ package com.rezarashidi.common.UI
 
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.rezarashidi.common.Projects
 import com.rezarashidi.common.Tasks
 import com.rezarashidi.common.TodoDatabaseQueries
-import kotlinx.coroutines.launch
-import java.util.logging.XMLFormatter
 
-@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterialApi::class)
+enum class sortby {
+    Default, Reward, Difficulty, Urgency, Time
+}
+@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterialApi::class, ExperimentalFoundationApi::class)
 @Composable
-fun taskList(db: TodoDatabaseQueries) {
+fun taskList(db: TodoDatabaseQueries, listState: LazyListState) {
     val selecttask: MutableState<Tasks?> = remember { mutableStateOf(null) }
     val scaffoldState = rememberScaffoldState(rememberDrawerState(DrawerValue.Closed))
     val scrollState = rememberScrollState()
@@ -39,13 +40,60 @@ fun taskList(db: TodoDatabaseQueries) {
     val showbuttom: MutableState<Boolean> = remember {
         mutableStateOf(true)
     }
-    val alltask  by remember(openDialog.value) {  mutableStateOf( db.getAllTasks().executeAsList() )}
+    var expanded by remember { mutableStateOf(false) }
+    var selectedIndex by remember { mutableStateOf(0) }
+    val alltask by remember(openDialog.value) { mutableStateOf(db.getAllTasks().executeAsList()) }
+    val items = listOf(sortby.Default, sortby.Difficulty, sortby.Reward, sortby.Time, sortby.Urgency)
+    val newtasks = alltask.filter {
+            if (tagPress) {
+                if (it.tags == null) false else it.tags.split(",").contains(tagSelect)
+            } else if (dailyreaptSelect) {
+                it.dailyRepeat == 1L
+            } else {
+                true
+            }
+        }
+        .sortedByDescending {
+            when (items[selectedIndex]) {
+                sortby.Default -> it.addTime
+                sortby.Urgency -> it.Urgency
+                sortby.Time -> ((it.timeInHour * 60) + it.timeInMinute)
+                sortby.Reward -> it.reward
+                sortby.Difficulty -> it.Difficulty
+            }
+        }
+    val tag = alltask.mapNotNull { tasks ->
+        if (tasks.tags == null) null else tasks.tags.split(",")
+    }.flatten().toSet()
+
 
     Box {
         Scaffold(
             scaffoldState = scaffoldState,
             drawerGesturesEnabled = false,
-            topBar = { TopAppBar(title = { Text("To do") }, backgroundColor = Color.White) },
+            topBar = {
+                TopAppBar(title = {
+                    IconButton(onClick = { expanded = true }) {
+                        Icon(Icons.Filled.Sort, "backIcon")
+                    }
+//                    Text("Sort by "+items[selectedIndex].toString(),modifier = Modifier.fillMaxWidth().clickable(onClick = { expanded = true }), textAlign = TextAlign.End)
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+//                        modifier = Modifier.fillMaxWidth()
+                    )
+                    {
+                        items.forEachIndexed { index, s ->
+                            DropdownMenuItem(onClick = {
+                                selectedIndex = index
+                                expanded = false
+                            }) {
+                                Text(text = s.name)
+                            }
+                        }
+                    }
+                }, backgroundColor = Color.White)
+            },
             floatingActionButtonPosition = FabPosition.Center,
             floatingActionButton = {
                 FloatingActionButton(onClick = {
@@ -63,185 +111,78 @@ fun taskList(db: TodoDatabaseQueries) {
             },
             drawerContent = { Text(text = "drawerContent") },
             content = {
-                Column(modifier = Modifier.verticalScroll(scrollState)) {
-//                    val x = openDialog.value //for recomposition
-//                    val x1 = selecttask.value //for recomposition
-                    val tag = alltask.mapNotNull { tasks ->
-                        if (tasks.tags == null) null else tasks.tags.split(",")
-                    }.flatten().toSet()
 
-                    Row(
-                        modifier = Modifier.fillMaxSize().padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "tags:"
-                        )
-
-                        OutlinedButton({
-                            dailyreaptSelect = !dailyreaptSelect
-                        }, modifier = Modifier.padding(5.dp), shape = RoundedCornerShape(50.dp)) {
-                            Text("Daily Repeat")
-                        }
-                        tag.forEach {
+                LazyColumn(state = listState) {
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxSize().padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             OutlinedButton({
-                                tagPress = !tagPress
-                                tagSelect = it
+                                dailyreaptSelect = !dailyreaptSelect
                             }, modifier = Modifier.padding(5.dp), shape = RoundedCornerShape(50.dp)) {
-                                Text(it)
+                                Text("Daily Repeat")
+                            }
+                            tag.forEach {
+                                OutlinedButton({
+                                    tagPress = !tagPress
+                                    tagSelect = it
+                                }, modifier = Modifier.padding(5.dp), shape = RoundedCornerShape(50.dp)) {
+                                    Text(it)
+                                }
                             }
                         }
                     }
 
-                    if (tagPress) {
 
-                        alltask.filter {
-                            if (it.tags == null) false else it.tags.split(",").contains(tagSelect)
-                        }.forEach {
-                            val dismissState = rememberDismissState(initialValue = DismissValue.Default)
-                            SwipeToDismiss(
-                                state = dismissState,
-                                /***  create dismiss alert Background */
-                                background = {
-                                    val direction = dismissState.dismissDirection
-                                    if (direction == DismissDirection.EndToStart) {
-                                        if (!dismissState.isDismissed(DismissDirection.EndToStart))
-                                            Row(
-                                                modifier = Modifier.padding(20.dp)
-                                                    .fillMaxSize(),
-                                                horizontalArrangement = Arrangement.End,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text("Delete", color = Color.Red, style = MaterialTheme.typography.h4)
-                                            }
 
-                                        if (dismissState.isDismissed(DismissDirection.EndToStart))
-                                            db.deleteTask(it.id)
-                                    }
+                    items(newtasks, key = {it.addTime}) { it ->
+                        val dismissState = rememberDismissState(initialValue = DismissValue.Default)
+                        SwipeToDismiss(
+                            state = dismissState,
+                            modifier = Modifier.animateItemPlacement(),
+                            /***  create dismiss alert Background */
+                            background = {
+                                val direction = dismissState.dismissDirection
+                                if (direction == DismissDirection.EndToStart) {
+                                    if (!dismissState.isDismissed(DismissDirection.EndToStart))
+                                        Row(
+                                            modifier = Modifier.padding(20.dp)
+                                                .fillMaxSize(),
+                                            horizontalArrangement = Arrangement.End,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text("Delete", color = Color.Red, style = MaterialTheme.typography.h4)
+                                        }
 
-                                    if (direction == DismissDirection.StartToEnd) {
-                                        if (!dismissState.isDismissed(DismissDirection.StartToEnd))
-                                            Row(
-                                                modifier = Modifier.padding(20.dp)
-                                                    .fillMaxSize(),
-                                                horizontalArrangement = Arrangement.Start,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text("Done", color = Color.Cyan, style = MaterialTheme.typography.h4)
-                                            }
+                                    if (dismissState.isDismissed(DismissDirection.EndToStart))
+                                        db.deleteTask(it.id)
+                                }
 
-                                        if (dismissState.isDismissed(DismissDirection.StartToEnd))
-                                            db.getTaskdoneByid(it.id)
-                                    }
-                                },
-                                /**** Dismiss Content */
-                                dismissContent = {
-                                    if (!dismissState.isDismissed(DismissDirection.EndToStart) && !openDialog.value) {
-                                        taskItem(db = db, it, showbuttom, openDialog, selecttask)
-                                    }
-                                },
-                                /*** Set Direction to dismiss */
-                                directions = setOf(DismissDirection.EndToStart, DismissDirection.StartToEnd),
-                            )
-                        }
-                    } else if (dailyreaptSelect) {
-                        alltask.filter {
-                            it.dailyRepeat == 1L
-                        }.forEach {
-                            val dismissState = rememberDismissState(initialValue = DismissValue.Default)
-                            SwipeToDismiss(
-                                state = dismissState,
-                                /***  create dismiss alert Background */
-                                background = {
-                                    val direction = dismissState.dismissDirection
-                                    if (direction == DismissDirection.EndToStart) {
-                                        if (!dismissState.isDismissed(DismissDirection.EndToStart))
-                                            Row(
-                                                modifier = Modifier.padding(20.dp)
-                                                    .fillMaxSize(),
-                                                horizontalArrangement = Arrangement.End,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text("Delete", color = Color.Red, style = MaterialTheme.typography.h4)
-                                            }
+                                if (direction == DismissDirection.StartToEnd) {
+                                    if (!dismissState.isDismissed(DismissDirection.StartToEnd))
+                                        Row(
+                                            modifier = Modifier.padding(20.dp)
+                                                .fillMaxSize(),
+                                            horizontalArrangement = Arrangement.Start,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text("Done", color = Color.Cyan, style = MaterialTheme.typography.h4)
+                                        }
 
-                                        if (dismissState.isDismissed(DismissDirection.EndToStart))
-                                            db.deleteTask(it.id)
-                                    }
-
-                                    if (direction == DismissDirection.StartToEnd) {
-                                        if (!dismissState.isDismissed(DismissDirection.StartToEnd))
-                                            Row(
-                                                modifier = Modifier.padding(20.dp)
-                                                    .fillMaxSize(),
-                                                horizontalArrangement = Arrangement.Start,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text("Done", color = Color.Cyan, style = MaterialTheme.typography.h4)
-                                            }
-
-                                        if (dismissState.isDismissed(DismissDirection.StartToEnd))
-                                            db.getTaskdoneByid(it.id)
-                                    }
-                                },
-                                /**** Dismiss Content */
-                                dismissContent = {
-                                    if (!dismissState.isDismissed(DismissDirection.EndToStart) && !openDialog.value) {
-                                        taskItem(db = db, it, showbuttom, openDialog, selecttask)
-                                    }
-                                },
-                                /*** Set Direction to dismiss */
-                                directions = setOf(DismissDirection.EndToStart, DismissDirection.StartToEnd),
-                            )
-                        }
-                    } else {
-                        alltask.forEach {
-                            val dismissState = rememberDismissState(initialValue = DismissValue.Default)
-                            SwipeToDismiss(
-                                state = dismissState,
-                                /***  create dismiss alert Background */
-                                background = {
-                                    val direction = dismissState.dismissDirection
-                                    if (direction == DismissDirection.EndToStart) {
-                                        if (!dismissState.isDismissed(DismissDirection.EndToStart))
-                                            Row(
-                                                modifier = Modifier.padding(20.dp)
-                                                    .fillMaxSize(),
-                                                horizontalArrangement = Arrangement.End,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text("Delete", color = Color.Red, style = MaterialTheme.typography.h4)
-                                            }
-
-                                        if (dismissState.isDismissed(DismissDirection.EndToStart))
-                                            db.deleteTask(it.id)
-                                    }
-
-                                    if (direction == DismissDirection.StartToEnd) {
-                                        if (!dismissState.isDismissed(DismissDirection.StartToEnd))
-                                            Row(
-                                                modifier = Modifier.padding(20.dp)
-                                                    .fillMaxSize(),
-                                                horizontalArrangement = Arrangement.Start,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text("Done", color = Color.Cyan, style = MaterialTheme.typography.h4)
-                                            }
-
-                                        if (dismissState.isDismissed(DismissDirection.StartToEnd))
-                                            db.getTaskdoneByid(it.id)
-                                    }
-                                },
-                                /**** Dismiss Content */
-                                dismissContent = {
-                                    if (!dismissState.isDismissed(DismissDirection.EndToStart) && !openDialog.value) {
-                                        taskItem(db = db, it, showbuttom, openDialog, selecttask)
-                                    }
-                                },
-                                /*** Set Direction to dismiss */
-                                directions = setOf(DismissDirection.EndToStart, DismissDirection.StartToEnd),
-                            )
-                        }
+                                    if (dismissState.isDismissed(DismissDirection.StartToEnd))
+                                        db.getTaskdoneByid(it.id)
+                                }
+                            },
+                            /**** Dismiss Content */
+                            dismissContent = {
+                                if (!dismissState.isDismissed(DismissDirection.EndToStart) && !openDialog.value) {
+                                    taskItem(db = db, it, showbuttom, openDialog, selecttask)
+                                }
+                            },
+                            /*** Set Direction to dismiss */
+                            directions = setOf(DismissDirection.EndToStart, DismissDirection.StartToEnd),
+                        )
                     }
                 }
             },

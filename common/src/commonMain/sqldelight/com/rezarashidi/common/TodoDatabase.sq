@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS Projects (
   Descreption TEXT NOT NULL,
   Pritority INTEGER NOT NULL,
   Startdate  TEXT NOT NULL,
-  Enddate  TEXT NOT NULL,
+  Enddate  TEXT,
   isdone INTEGER NOT NULL
 
 );
@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS Tasks (
   dailyRepeat INTEGER NOT NULL,
   tags TEXT,
   reward INTEGER NOT NULL,
-  isdone INTEGER NOT NULL
+  isdone INTEGER NOT NULL,
+  addTime INTEGER NOT NULL
 );
 
 
@@ -56,7 +57,7 @@ DELETE FROM Tasks WHERE id = :id;
 
 
 insertTasks:
-INSERT OR REPLACE  INTO Tasks VALUES (?,?,?,?,?,?,?,?,?,?,?,?);
+INSERT OR REPLACE  INTO Tasks VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?);
 
 getTasksByProjectID:
 SELECT * FROM Tasks WHERE ProjectID = :id;
@@ -90,7 +91,8 @@ SELECT * FROM Timerecord WHERE TaskID = :id;
 
 CREATE TABLE IF NOT EXISTS dailiess (
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-  TaskID INTEGER NOT NULL
+  TaskID INTEGER NOT NULL,
+  DateAdd INTEGER NOT NULL
 );
 
 getAlldailiess:
@@ -98,7 +100,7 @@ SELECT *
 FROM dailiess;
 
 insertdailiess:
-INSERT OR REPLACE  INTO dailiess VALUES (?,?);
+INSERT OR REPLACE  INTO dailiess VALUES (?,?,?);
 
 
 

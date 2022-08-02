@@ -42,6 +42,8 @@ fun projectList(db: TodoDatabaseQueries) {
         mutableStateOf(true)
     }
     val selecttask: MutableState<Tasks?> = remember { mutableStateOf(null) }
+    var expanded by remember { mutableStateOf(false) }
+    var selectedIndex by remember { mutableStateOf(0) }
 
     @Composable
     fun allprojects(){
@@ -88,12 +90,9 @@ fun projectList(db: TodoDatabaseQueries) {
                     /**** Dismiss Content */
                     dismissContent = {
                         if(!dismissState.isDismissed(DismissDirection.EndToStart))
-                            Box(Modifier.clickable {
-                                selectproject.value=it
-//                                openDialog.value=true
-                            }){
-                                projectItem(it,db)
-                            }
+
+                                projectItem(it,db,selectproject,openDialog)
+
 
                     },
                     /*** Set Direction to dismiss */
@@ -169,7 +168,7 @@ fun projectList(db: TodoDatabaseQueries) {
         Scaffold(
             scaffoldState = scaffoldState,
             drawerGesturesEnabled = false,
-            topBar = { TopAppBar(title = { Text("To do") }, backgroundColor = Color.White) },
+            topBar = { TopAppBar(title = {  }, backgroundColor = Color.White) },
             floatingActionButtonPosition = FabPosition.Center,
             floatingActionButton = {
                 FloatingActionButton(onClick = {

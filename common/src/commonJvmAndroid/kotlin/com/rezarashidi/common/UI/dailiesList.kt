@@ -86,9 +86,6 @@ fun dailiesList(db: TodoDatabaseQueries) {
                     Row(
                         modifier = Modifier.fillMaxSize().padding(10.dp), verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            "tags:"
-                        )
 
                         OutlinedButton({
                             dailyreaptSelect = !dailyreaptSelect

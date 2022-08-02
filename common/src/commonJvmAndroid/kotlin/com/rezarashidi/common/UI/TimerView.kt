@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.rezarashidi.common.TodoDatabaseQueries
 import kotlinx.coroutines.delay
 import kotlinx.datetime.*
-
+import kotlin.time.ExperimentalTime
 
 class TimerData(val min: Int = 0) {
     private var startTime = Clock.System.now()
@@ -21,6 +21,7 @@ class TimerData(val min: Int = 0) {
 
         startTime = Clock.System.now()
     }
+    @OptIn(ExperimentalTime::class)
     fun passtime(): DateTimePeriod {
 
 

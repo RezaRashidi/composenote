@@ -17,6 +17,10 @@ import com.vanpra.composematerialdialogs.MaterialDialog
 import com.vanpra.composematerialdialogs.datetime.date.datepicker
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+
 @Composable
 fun projectDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, Project: MutableState<Projects?>? = null) {
 
@@ -120,8 +124,8 @@ fun projectDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, Pr
                         projectName.value.text,
                         descreption.value.text,
                         sliderPosition.toLong(),
-                        dateStart.value,
-                        dateEnd.value,
+                       if (dateStart.value=="") Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString() else dateStart.value,
+                        if (dateEnd.value=="")null else dateEnd.value,
                         if (isdone) 1 else 0
                     )
 

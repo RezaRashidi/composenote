@@ -1,12 +1,11 @@
 package com.rezarashidi.common
 
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Shapes
 import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.currentCompositionLocalContext
-import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import com.rezarashidi.common.UI.*
 
@@ -19,9 +18,10 @@ fun App(db: TodoDatabaseQueries) {
         colors = mycolor,
         shapes = Shapes(RoundedCornerShape(15),RoundedCornerShape(15),RoundedCornerShape(15))
     ){
+        val listState = rememberLazyListState()
 
 
-        TabLayout({ projectList(db) },{ taskList(db) },{dailiesList(db)},db)
+        TabLayout({ projectList(db) },{ taskList(db,listState) },{dailiesList(db)},db)
 
     }
 
