@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -14,13 +15,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.rezarashidi.common.Projects
 import com.rezarashidi.common.Tasks
 import com.rezarashidi.common.TodoDatabaseQueries
-import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import kotlinx.coroutines.launch
 
 
@@ -29,7 +28,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalAnimationApi::class)
 @Composable
-fun projectList(db: TodoDatabaseQueries) {
+fun projectList(db: TodoDatabaseQueries, projectListState: LazyListState) {
     val scaffoldState = rememberScaffoldState(rememberDrawerState(DrawerValue.Closed))
     val scrollState = rememberScrollState()
     val scrollStatetask = rememberScrollState()
@@ -44,6 +43,7 @@ fun projectList(db: TodoDatabaseQueries) {
     val selecttask: MutableState<Tasks?> = remember { mutableStateOf(null) }
     var expanded by remember { mutableStateOf(false) }
     var selectedIndex by remember { mutableStateOf(0) }
+    val eventchange =remember { mutableStateOf(false) }
 
     @Composable
     fun allprojects(){
@@ -149,7 +149,7 @@ fun projectList(db: TodoDatabaseQueries) {
                         /**** Dismiss Content */
                         dismissContent = {
                             if (!dismissState.isDismissed(DismissDirection.EndToStart) && !openDialog.value) {
-                                taskItem(db = db, it, showbuttom, openDialog, selecttask)
+                                taskItem(db = db, it, showbuttom, openDialog, selecttask, eventchange)
                             }
                         },
                         /*** Set Direction to dismiss */

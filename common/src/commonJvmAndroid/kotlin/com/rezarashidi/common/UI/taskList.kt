@@ -10,11 +10,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,6 +30,10 @@ enum class sortby {
 @OptIn(ExperimentalAnimationApi::class, ExperimentalMaterialApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun taskList(db: TodoDatabaseQueries, listState: LazyListState) {
+
+    fun getalltask()=  db.getAllTasks().executeAsList().filter { it.Del ==0L }
+
+
     val selecttask: MutableState<Tasks?> = remember { mutableStateOf(null) }
     val scaffoldState = rememberScaffoldState(rememberDrawerState(DrawerValue.Closed))
     val scrollState = rememberScrollState()
@@ -40,10 +47,14 @@ fun taskList(db: TodoDatabaseQueries, listState: LazyListState) {
     val showbuttom: MutableState<Boolean> = remember {
         mutableStateOf(true)
     }
+
+    val eventchange =remember() { mutableStateOf(true) }
+    val items = listOf(sortby.Default, sortby.Difficulty, sortby.Reward, sortby.Time, sortby.Urgency)
     var expanded by remember { mutableStateOf(false) }
     var selectedIndex by remember { mutableStateOf(0) }
-    val alltask by remember(openDialog.value) { mutableStateOf(db.getAllTasks().executeAsList()) }
-    val items = listOf(sortby.Default, sortby.Difficulty, sortby.Reward, sortby.Time, sortby.Urgency)
+    val alltask by remember(openDialog.value,eventchange.value) { mutableStateOf(getalltask().toMutableStateList()) }
+
+
     val newtasks = alltask.filter {
             if (tagPress) {
                 if (it.tags == null) false else it.tags.split(",").contains(tagSelect)
@@ -137,10 +148,27 @@ fun taskList(db: TodoDatabaseQueries, listState: LazyListState) {
 
 
                     items(newtasks, key = {it.addTime}) { it ->
-                        val dismissState = rememberDismissState(initialValue = DismissValue.Default)
+                        var newit by mutableStateOf(it)
+                        val dismissState = rememberDismissState(initialValue = DismissValue.Default, confirmStateChange = {DismissValueS ->
+                        if (DismissValueS == DismissValue.DismissedToEnd){
+                            if(newit.isdone==0L){
+                                db.getTaskdoneByid(it.id)
+                                newit=it.copy(isdone = 1L)
+                                eventchange.value=!eventchange.value
+                            }else{
+                                db.getTaskundoneByid(it.id)
+                                newit=it.copy(isdone = 0L)
+                                eventchange.value=!eventchange.value
+                            }
+
+                        }
+
+                            DismissValueS != DismissValue.DismissedToEnd
+                        })
                         SwipeToDismiss(
                             state = dismissState,
                             modifier = Modifier.animateItemPlacement(),
+                            directions = setOf(DismissDirection.EndToStart, DismissDirection.StartToEnd),
                             /***  create dismiss alert Background */
                             background = {
                                 val direction = dismissState.dismissDirection
@@ -152,11 +180,22 @@ fun taskList(db: TodoDatabaseQueries, listState: LazyListState) {
                                             horizontalArrangement = Arrangement.End,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text("Delete", color = Color.Red, style = MaterialTheme.typography.h4)
+                                                    Icon(
+                                                Icons.Default.Delete,
+                                                contentDescription = "Localized description",
+                                                tint =  Color.Cyan,
+                                                modifier = Modifier.scale(2f)
+
+                                            )
                                         }
 
-                                    if (dismissState.isDismissed(DismissDirection.EndToStart))
+                                    if (dismissState.isDismissed(DismissDirection.EndToStart)){
+
+
                                         db.deleteTask(it.id)
+//                                        alltask.remove(it)
+                                    }
+
                                 }
 
                                 if (direction == DismissDirection.StartToEnd) {
@@ -167,21 +206,44 @@ fun taskList(db: TodoDatabaseQueries, listState: LazyListState) {
                                             horizontalArrangement = Arrangement.Start,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text("Done", color = Color.Cyan, style = MaterialTheme.typography.h4)
+//                                            Text("Done", color = Color.Cyan, style = MaterialTheme.typography.h4)
+                                            Icon(
+                                                Icons.Default.Done,
+                                                contentDescription = "Localized description",
+                                                tint =  Color.Cyan,
+                                                modifier = Modifier.scale(2f)
+
+                                            )
                                         }
 
-                                    if (dismissState.isDismissed(DismissDirection.StartToEnd))
-                                        db.getTaskdoneByid(it.id)
+                                    if (dismissState.isDismissed(DismissDirection.StartToEnd)){
+
+
+
+
+
+
+
+//                                        eventchange.value=!eventchange.value
+//                                        alltask.add(it.copy(isdone = 1))
+//                                        alltask.(it)
+
+                                    }
+
                                 }
                             },
                             /**** Dismiss Content */
                             dismissContent = {
-                                if (!dismissState.isDismissed(DismissDirection.EndToStart) && !openDialog.value) {
-                                    taskItem(db = db, it, showbuttom, openDialog, selecttask)
+                                if (!dismissState.isDismissed(DismissDirection.EndToStart) && !openDialog.value ) {
+
+                                        taskItem(db = db, newit, showbuttom, openDialog, selecttask, eventchange)
+
+
                                 }
+
                             },
                             /*** Set Direction to dismiss */
-                            directions = setOf(DismissDirection.EndToStart, DismissDirection.StartToEnd),
+
                         )
                     }
                 }

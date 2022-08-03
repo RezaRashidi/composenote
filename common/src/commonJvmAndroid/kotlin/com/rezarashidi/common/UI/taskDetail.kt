@@ -280,7 +280,8 @@ fun taskDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, task:
                         dailyRepeat.let { if (it) return@let 1L else 0L },
                         if (tags.isNotEmpty()) tags.joinToString(",") else null, rewardWithtime.toLong(),
                         if (isdone) 1 else 0,
-                        System.nanoTime()
+                        System.nanoTime(),
+                        0
                     )
 
                     sheetState.value = false

@@ -18,10 +18,12 @@ fun App(db: TodoDatabaseQueries) {
         colors = mycolor,
         shapes = Shapes(RoundedCornerShape(15),RoundedCornerShape(15),RoundedCornerShape(15))
     ){
-        val listState = rememberLazyListState()
+        val taskListState = rememberLazyListState()
+        val projectListState = rememberLazyListState()
+        val dailiesListState = rememberLazyListState()
 
 
-        TabLayout({ projectList(db) },{ taskList(db,listState) },{dailiesList(db)},db)
+        TabLayout({ projectList(db,projectListState) },{ taskList(db,taskListState) },{dailiesList(db,dailiesListState)},db)
 
     }
 

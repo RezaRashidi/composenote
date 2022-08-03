@@ -8,7 +8,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,11 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.rezarashidi.common.Tasks
 import com.rezarashidi.common.TodoDatabaseQueries
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toInstant
-import kotlinx.datetime.toLocalDateTime
-import kotlin.math.roundToInt
+import kotlinx.datetime.*
 
 @ExperimentalAnimationApi
 @ExperimentalMaterialApi
@@ -33,6 +28,10 @@ fun taskItem(
     showbuttom1: MutableState<Boolean>,
     openDialog: MutableState<Boolean>,
     selecttask: MutableState<Tasks?>,
+    eventchange: MutableState<Boolean>,
+    addmode: Boolean = false,
+    listoftask: MutableList<Tasks>? = null,
+    sheetState: MutableState<Boolean>? = null,
 ) {
 //    val state = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden)
     val taskName by remember() { mutableStateOf(Task.Task_name) }
@@ -59,6 +58,8 @@ fun taskItem(
         mutableStateOf(false)
     }
     if (showbuttom.value) {
+        eventchange.value = !eventchange.value
+
         showbuttom1.value = !showbuttom1.value
     }
     var showselectTime by remember {
@@ -71,20 +72,22 @@ fun taskItem(
 
     Card(Modifier.fillMaxWidth().padding(15.dp), elevation = 5.dp) {
         BoxWithConstraints(modifier = Modifier.clickable {
+            if (!addmode) {
+                openDialog.value = true
+            }
             selecttask.value = Task
-            openDialog.value = true
             scope.launch {
                 showselectTime = false
             }
         }, contentAlignment = Alignment.Center) {
             Column(
                 modifier = Modifier.fillMaxWidth().graphicsLayer(alpha = alpha),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.Start
             ) {
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(20.dp).fillMaxWidth()
+                    modifier = Modifier.padding(20.dp,10.dp,20.dp,0.dp).fillMaxWidth()
                 ) {
                     Column {
                         Text(taskName, style = MaterialTheme.typography.h4)
@@ -92,50 +95,68 @@ fun taskItem(
 
                         Text(
                             "$timeH:$timeM:0 / " + "${spendtimeH}:${spendtimeM}:${spendtimeS}",
-                            modifier = Modifier.padding(0.dp,5.dp),
+                            modifier = Modifier.padding(0.dp, 5.dp),
                             style = MaterialTheme.typography.subtitle2
                         )
-                        Row (
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.width(IntrinsicSize.Max)
-                        ){
-                            Text(
-                                "urgency:${levels[Task.Urgency.toInt() - 1]} ",
-                                modifier = Modifier.padding(0.dp,0.dp,10.dp,0.dp),
-                                style = MaterialTheme.typography.subtitle2
-                            )
-                            Text(
-                                "Diffculty: ${levels[Task.Difficulty.toInt() - 1]}",
-                                modifier = Modifier.padding(0.dp,0.dp,10.dp,0.dp),
-                                style = MaterialTheme.typography.subtitle2
-                            )
-                            Text(
-                                "reward:${Task.reward}xp",
-                                modifier = Modifier.padding(0.dp,0.dp,0.dp,0.dp),
-                                style = MaterialTheme.typography.subtitle2
-                            )
-                        }
                     }
-
-
                     if (showbuttom.value) {
                         OutlinedButton(
                             onClick = {
-                                scope.launch {
+                                if (addmode) {
+                                    db.insertdailiess(null, Task.id, Clock.System.now().toEpochMilliseconds())
+                                    listoftask?.remove(Task)
+                                    if (listoftask?.isEmpty() == true) {
+                                        sheetState?.value = !sheetState?.value!!
+                                    }
+                                    openDialog.value = !openDialog.value
+                                } else if (Task.isdone == 0L) {
                                     showselectTime = true
                                 }
                             },
                             border = BorderStroke(2.dp, MaterialTheme.colors.primary)
                         ) {
-                            Text(
-                                "Start", style = MaterialTheme.typography.h5
-                            )
+                            if (Task.isdone == 1L) {
+                                Text(
+                                    "Done", style = MaterialTheme.typography.h5
+                                )
+                            } else if (addmode) {
+                                Text(
+                                    "add", style = MaterialTheme.typography.h5
+                                )
+                            } else {
+                                Text(
+                                    "Start", style = MaterialTheme.typography.h5
+                                )
+                            }
                         }
                     } else {
                         TimerView(min, db, showbuttom, Task.id)
                     }
                 }
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(20.dp,5.dp,20.dp,5.dp).fillMaxWidth()
+                ) {
+                    Text(
+                        "urgency:${levels[Task.Urgency.toInt() - 1]} ",
+                        modifier = Modifier.padding(0.dp, 0.dp, 10.dp, 0.dp),
+                        style = MaterialTheme.typography.subtitle2
+                    )
+                    Text(
+                        "Diffculty: ${levels[Task.Difficulty.toInt() - 1]}",
+                        modifier = Modifier.padding(0.dp, 0.dp, 10.dp, 0.dp),
+                        style = MaterialTheme.typography.subtitle2
+                    )
+                    Text(
+                        "reward:${Task.reward}xp",
+                        modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 0.dp),
+                        style = MaterialTheme.typography.subtitle2
+                    )
+                }
+
+
+
                 LinearProgressIndicator(
                     modifier = Modifier.fillMaxWidth().height(7.dp),
                     progress = if (spendtime.toInstant(TimeZone.UTC).epochSeconds == 0L) 0F else (spendtime.toInstant(

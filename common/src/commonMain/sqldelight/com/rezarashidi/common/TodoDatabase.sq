@@ -41,7 +41,8 @@ CREATE TABLE IF NOT EXISTS Tasks (
   tags TEXT,
   reward INTEGER NOT NULL,
   isdone INTEGER NOT NULL,
-  addTime INTEGER NOT NULL
+  addTime INTEGER NOT NULL,
+  Del INTEGER NOT NULL
 );
 
 
@@ -53,18 +54,19 @@ getTasksByID:
 SELECT * FROM Tasks WHERE id = :id;
 
 deleteTask:
-DELETE FROM Tasks WHERE id = :id;
+UPDATE Tasks SET Del =1 WHERE id=:id;
 
 
 insertTasks:
-INSERT OR REPLACE  INTO Tasks VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?);
+INSERT OR REPLACE  INTO Tasks VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?);
 
 getTasksByProjectID:
 SELECT * FROM Tasks WHERE ProjectID = :id;
 
 getTaskdoneByid:
 UPDATE Tasks SET isdone =1 WHERE id=:id;
-
+getTaskundoneByid:
+UPDATE Tasks SET isdone =0 WHERE id=:id;
 getTasksBytagID:
 SELECT * FROM Tasks WHERE tags LIKE ('% ' || :tag) OR tags LIKE (:tag || ' %');
 
@@ -102,7 +104,8 @@ FROM dailiess;
 insertdailiess:
 INSERT OR REPLACE  INTO dailiess VALUES (?,?,?);
 
-
+getdailiessBytaskID:
+SELECT * FROM dailiess WHERE TaskID = :id;
 
 deletedailiess:
 DELETE FROM dailiess WHERE TaskID = :id;

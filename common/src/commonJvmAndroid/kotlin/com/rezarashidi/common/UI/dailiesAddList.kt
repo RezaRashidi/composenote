@@ -1,17 +1,20 @@
 package com.rezarashidi.common.UI
 
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Card
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.OutlinedButton
-import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
+import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Sort
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.rezarashidi.common.Projects
+import com.rezarashidi.common.Tasks
 import com.rezarashidi.common.TodoDatabaseQueries
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
@@ -19,54 +22,133 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
 
+@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterialApi::class)
 @Composable
 fun dailiesAddList(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries) {
-    val listoftask = db.getAllTasks().executeAsList()
-    Column(Modifier.width(IntrinsicSize.Max), horizontalAlignment = Alignment.CenterHorizontally) {
+    var selectedIndex by remember { mutableStateOf(0) }
+    val items = listOf(sortby.Default, sortby.Difficulty, sortby.Reward, sortby.Time, sortby.Urgency)
+    val projects = db.getAllProjects().executeAsList().toMutableList().apply {
+       add(0, Projects(0,"all","",0,"","",1))
+    }
 
-        listoftask.forEach {
+    var expanded by remember { mutableStateOf(false) }
+    var expanded1 by remember { mutableStateOf(false) }
+    var projectid by remember { mutableStateOf<Long>(0)}
+    val openDialog= remember(){mutableStateOf(false)}
+    val listoftask by remember (projectid,selectedIndex,openDialog.value){
+        mutableStateOf(
 
 
-            Card(Modifier.fillMaxWidth().padding(20.dp), elevation = 5.dp, shape = RoundedCornerShape(7)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+        db.getAllTasks().executeAsList().asSequence().filter {
+            it.Del == 0L
+        }.filter {
+            it.isdone == 0L
+        }.filter {
+            db.getdailiessBytaskID(it.id).executeAsOneOrNull() == null
+        }
+            .filter {
+                if (projectid == 0L) {
+                    true
+                } else {
+                    it.ProjectID == projectid
+                }
+            }.toList()
+            .sortedByDescending {
+                when (items[selectedIndex]) {
+                    sortby.Default -> it.addTime
+                    sortby.Urgency -> it.Urgency
+                    sortby.Time -> ((it.timeInHour * 60) + it.timeInMinute)
+                    sortby.Reward -> it.reward
+                    sortby.Difficulty -> it.Difficulty
+                }
+            }.toMutableList()
+        )
+}
 
-                    Column(modifier = Modifier.padding(10.dp)) {
-                        Text(it.Task_name, modifier = Modifier.padding(5.dp), style = MaterialTheme.typography.h6)
-                        if (it.ProjectID != null) {
-                            Text(("Project:" + it.ProjectID.let { it1 ->
-                                db.getProjectByID(it1).executeAsOne().Project_name
-                            }) , modifier = Modifier.padding(5.dp))
-                        }
-                        Text("Reward: "+it.reward+"px", modifier = Modifier.padding(5.dp))
-                        Text("time: "+it.timeInHour+"h : "+it.timeInMinute+"m", modifier = Modifier.padding(5.dp))
 
-                    }
-                    OutlinedButton(
-                        {
-                            db.insertdailiess(null, it.id, Clock.System.now().epochSeconds)
-                        }, border = BorderStroke(2.dp, color = MaterialTheme.colors.primary),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.padding(10.dp)
-                    ) {
 
-                        Text("add", style = MaterialTheme.typography.h5)
+    Column( horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("select Project")
+            IconButton(onClick = { expanded1 = true }) {
+                Icon(Icons.Filled.Sort, "backIcon")
+            }
+            DropdownMenu(
+                expanded = expanded1,
+                onDismissRequest = { expanded1 = false },
+//                modifier = Modifier.fillMaxWidth()
+            )
+            {
+                projects.forEachIndexed { index, s ->
+                    DropdownMenuItem(onClick = {
+                        expanded1 = false
+                        projectid = s.id
+                    }) {
+                        Text(text = s.Project_name)
                     }
                 }
+            }
 
 
+
+            Text("sort by")
+            IconButton(onClick = { expanded = true }) {
+                Icon(Icons.Filled.Sort, "backIcon")
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+//                modifier = Modifier.fillMaxWidth()
+            )
+            {
+                items.forEachIndexed { index, s ->
+                    DropdownMenuItem(onClick = {
+                        selectedIndex = index
+                        expanded = false
+                    }) {
+                        Text(text = s.name)
+                    }
+                }
             }
         }
+
+        if (listoftask.isEmpty()){
+
+            Text("There is no task")
+        }else{
+            showlist(db,listoftask,openDialog,sheetState)
+        }
+
+
+
+
         OutlinedButton(
             {
-                sheetState.value=false
+                sheetState.value = false
             }, border = BorderStroke(2.dp, color = MaterialTheme.colors.primary),
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.padding(10.dp)
         ) {
-
             Text("close", style = MaterialTheme.typography.h5)
         }
     }
+}
+@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterialApi::class)
+@Composable
+fun showlist(db: TodoDatabaseQueries,listoftask: MutableList<Tasks>,openDialog: MutableState<Boolean>,sheetState: MutableState<Boolean>){
+    listoftask.forEach {
+key(it.addTime){
+
+    taskItem(db,it, mutableStateOf(false),openDialog,mutableStateOf(null),mutableStateOf(false),true,listoftask,sheetState)
+
+}
 
 
+
+//        if (openDialog.value){
+//         listoftask.remove(it)
+//            openDialog.value=!openDialog.value
+//        }
+
+    }
 }
