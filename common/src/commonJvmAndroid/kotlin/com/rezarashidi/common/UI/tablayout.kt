@@ -24,7 +24,7 @@ private enum class todotabs(val value: String) {
 @Composable
 fun TabLayout(projects:@Composable () -> Unit,tasks:@Composable () -> Unit,dailies:@Composable () -> Unit,db: TodoDatabaseQueries) {
     val tabsName = remember { todotabs.values().map { it.value } }
-    val selectedIndex = remember { mutableStateOf(2) }
+    val selectedIndex = remember { mutableStateOf(1) }
     val icons = listOf(Icons.Default.Info, Icons.Default.Person, Icons.Default.ShoppingCart)
 
     Column {

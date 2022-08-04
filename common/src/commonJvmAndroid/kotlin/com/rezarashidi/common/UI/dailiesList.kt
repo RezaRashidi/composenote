@@ -72,6 +72,7 @@ fun dailiesList(db: TodoDatabaseQueries, dailiesListState: LazyListState) {
                 sortby.Time -> ((it.timeInHour * 60) + it.timeInMinute)
                 sortby.Reward -> it.reward
                 sortby.Difficulty -> it.Difficulty
+                sortby.Isdone ->it.isdone
             }
         }
 
@@ -295,7 +296,7 @@ fun dailiesList(db: TodoDatabaseQueries, dailiesListState: LazyListState) {
             Box(
                 modifier = Modifier.clickable {
                 }.align(alignment = Alignment.Center).padding(20.dp).clip(shape = RoundedCornerShape(3))
-                    .background(color = Color.White).verticalScroll(ScrollState)
+                    .background(color = Color.White)
             ) {
                 taskDetail(openDialog, db, selecttask.value)
             }

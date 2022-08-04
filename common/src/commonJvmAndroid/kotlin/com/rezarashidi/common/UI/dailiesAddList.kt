@@ -60,6 +60,7 @@ fun dailiesAddList(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries) {
                     sortby.Time -> ((it.timeInHour * 60) + it.timeInMinute)
                     sortby.Reward -> it.reward
                     sortby.Difficulty -> it.Difficulty
+                    sortby.Isdone ->it.isdone
                 }
             }.toMutableList()
         )

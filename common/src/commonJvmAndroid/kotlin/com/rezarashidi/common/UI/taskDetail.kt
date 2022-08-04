@@ -1,9 +1,8 @@
 package com.rezarashidi.common.UI
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -22,15 +21,18 @@ import com.vanpra.composematerialdialogs.datetime.date.datepicker
 import com.vanpra.composematerialdialogs.datetime.time.timepicker
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import kotlinx.coroutines.launch
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalTime::class)
 @Composable
 fun taskDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, task: Tasks? = null) {
     val taskName = remember { mutableStateOf(TextFieldValue(task?.Task_name ?: "")) }
     val descreption = remember { mutableStateOf(TextFieldValue(task?.Descreption ?: "")) }
     val tag = remember { mutableStateOf(TextFieldValue()) }
     var isTagDelete by remember { mutableStateOf(false) }
-    val tags by remember(isTagDelete) { mutableStateOf(mutableListOf<String>()) }
+    val tags by remember() { mutableStateOf(mutableListOf<String>()) }
 
     LaunchedEffect(true) {
         if (task != null) {
@@ -52,6 +54,7 @@ fun taskDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, task:
     val scope = rememberCoroutineScope()
     val tabDialog = remember { mutableStateOf(false) }
     var Dropdownexpanded by remember { mutableStateOf(false) }
+    var showtimes = remember { mutableStateOf(false) }
     val projectlist = remember {
         val x: MutableList<Pair<String, Long?>> = db.getAllProjects().executeAsList().map {
             it.Project_name to it.id
@@ -106,166 +109,262 @@ fun taskDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, task:
     }
 
 
-
-
-
     Column(
-        modifier = Modifier.fillMaxWidth().padding(20.dp),
+        modifier = Modifier.fillMaxWidth().padding(10.dp, 5.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceEvenly
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        OutlinedTextField(taskName.value, onValueChange = {
-            taskName.value = it
-        }, label = {
-            Text("Task Name")
-        }, modifier = Modifier.fillMaxWidth().padding(10.dp))
-        OutlinedTextField(descreption.value, onValueChange = {
-            descreption.value = it
-        }, label = {
-            Text("Description")
-        }, modifier = Modifier.fillMaxWidth().padding(10.dp))
+        val scrollState = rememberScrollState(0)
+        Box(Modifier.fillMaxSize().weight(10f).verticalScroll(scrollState)) {
+            if (!showtimes.value) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    OutlinedTextField(taskName.value, onValueChange = {
+                        taskName.value = it
+                    }, label = {
+                        Text("Task Name")
+                    }, modifier = Modifier.fillMaxWidth().padding(10.dp))
+                    OutlinedTextField(descreption.value, onValueChange = {
+                        descreption.value = it
+                    }, label = {
+                        Text("Description")
+                    }, modifier = Modifier.fillMaxWidth().padding(10.dp))
 
-        Box(modifier = Modifier.fillMaxWidth().padding(10.dp)) {
-            Text(projectlist[selectedProjectIndex].first, modifier = Modifier.clickable {
-                Dropdownexpanded = true
-            }.fillMaxWidth().border(color = Color.Gray, width = 1.dp, shape = RoundedCornerShape(4.dp)).padding(15.dp))
+                    Box(modifier = Modifier.fillMaxWidth().padding(10.dp)) {
+                        Text(
+                            projectlist[selectedProjectIndex].first, modifier = Modifier.clickable {
+                                Dropdownexpanded = true
+                            }.fillMaxWidth().border(color = Color.Gray, width = 1.dp, shape = RoundedCornerShape(4.dp))
+                                .padding(15.dp)
+                        )
 
 
 
-            DropdownMenu(
-                expanded = Dropdownexpanded,
-                onDismissRequest = { Dropdownexpanded = false },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                projectlist.forEachIndexed { index, s ->
-                    DropdownMenuItem(onClick = {
-                        selectedProjectIndex = index
-                        Dropdownexpanded = false
-                    }) {
-                        Text(text = s.first)
+                        DropdownMenu(
+                            expanded = Dropdownexpanded,
+                            onDismissRequest = { Dropdownexpanded = false },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            projectlist.forEachIndexed { index, s ->
+                                DropdownMenuItem(onClick = {
+                                    selectedProjectIndex = index
+                                    Dropdownexpanded = false
+                                }) {
+                                    Text(text = s.first)
+                                }
+                            }
+                        }
+                    }
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(10.dp)
+                    ) {
+                        Text(text = "Estimated Time:", modifier = Modifier.align(alignment = Alignment.Start))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(10.dp),
+                            horizontalArrangement = Arrangement.SpaceAround
+                        ) {
+                            OutlinedTextField(
+                                timeH.value,
+                                onValueChange = {
+                                    timeH.value = it
+                                },
+                                label = {
+                                    Text("hour")
+                                },
+                                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            OutlinedTextField(
+                                timeM.value,
+                                onValueChange = {
+                                    timeM.value = it
+                                },
+                                label = {
+                                    Text("minute")
+                                },
+                                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(10.dp)
+                    ) {
+                        Row(modifier = Modifier.align(alignment = Alignment.Start)) {
+                            Text(text = "Difficulty: ")
+                            Text(text = difficulty[sliderPositionDifficulty.toInt() - 1])
+                        }
+
+                        Slider(
+                            value = sliderPositionDifficulty,
+                            onValueChange = {
+                                sliderPositionDifficulty = it
+                                reward.value = (sliderPositionDifficulty * sliderPositionUrgency).toInt() * 10
+                            },
+                            steps = 1,
+                            valueRange = 1f..3f
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(10.dp)
+                    ) {
+                        Row(modifier = Modifier.align(alignment = Alignment.Start)) {
+                            Text(text = "Urgency: ")
+                            Text(text = Urgency[sliderPositionUrgency.toInt() - 1])
+                        }
+
+
+                        Slider(
+                            value = sliderPositionUrgency,
+                            onValueChange = {
+                                sliderPositionUrgency = it
+                                reward.value = (sliderPositionDifficulty * sliderPositionUrgency).toInt() * 10
+                            },
+                            steps = 1,
+                            valueRange = 1f..3f
+                        )
+                    }
+                    ////////////////
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    )
+                    {
+                        Row(
+                            horizontalArrangement = Arrangement.Start,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Repeat:")
+                            Checkbox(modifier = Modifier.height(intrinsicSize = IntrinsicSize.Max),
+                                checked = dailyRepeat,
+                                onCheckedChange = { dailyRepeat = it }
+                            )
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.Start,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("done:")
+                            Checkbox(modifier = Modifier.height(intrinsicSize = IntrinsicSize.Max),
+                                checked = isdone,
+                                onCheckedChange = { isdone = it }
+                            )
+                        }
+
+                        Row(
+                            horizontalArrangement = Arrangement.Start,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = "reward:")
+                            Text(text = rewardWithtime.toString())
+                        }
+                    }
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(10.dp)
+                    ) {
+                        Text(text = "Tags:", modifier = Modifier.align(alignment = Alignment.Start))
+                        val scrollState1 = rememberScrollState(0)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(10.dp).horizontalScroll(scrollState1),
+                            horizontalArrangement = Arrangement.Start,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedButton(
+                                { tabDialog.value = true },
+                                contentPadding = PaddingValues(0.dp),
+                                modifier = Modifier.padding(0.dp),
+                                shape = RoundedCornerShape(20.dp)
+                            ) {
+                                Text("ADD", modifier = Modifier.padding(0.dp))
+                            }
+
+
+                            tags.forEach {
+                                key(isTagDelete) {
+                                    OutlinedButton({}, shape = RoundedCornerShape(20.dp)) {
+                                        Text(it)
+                                        Text("x", Modifier.clickable {
+                                            tags.remove(it)
+                                            isTagDelete = !isTagDelete
+                                        }, color = Color.Red)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (task != null) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    val times = db.getTimerecordByTaskID(task.id).executeAsList()
+
+                    if (times.isEmpty()) {
+                        Card(elevation = 5.dp, modifier = Modifier.padding(10.dp)) {
+                            Text(
+                                "there is no time record",
+                                style = MaterialTheme.typography.h5,
+                                modifier = Modifier.padding(10.dp)
+                            )
+                        }
+                    }
+
+                    times.forEach {
+                        Card(elevation = 5.dp, modifier = Modifier.padding(10.dp)) {
+                            Row(modifier = Modifier.padding(10.dp)) {
+                                val date = it.date.toLocalDateTime()
+                                Text("Date:" + date.date.toString())
+                                Text("          Start Time:${date.hour}h:${date.minute}m:${date.second}s          ")
+                                val duration = Duration.seconds(it.lenth)
+
+                                duration.toComponents { days, hours, minutes, seconds, nanoseconds ->
+                                    Text(
+                                        " Duration: ${hours}h:${minutes}m:${seconds}s"
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
-        //////////////
-        Text(text = "Estimated Time:", modifier = Modifier.align(alignment = Alignment.Start))
-
-        Row(modifier = Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.SpaceAround) {
-            OutlinedTextField(
-                timeH.value,
-                onValueChange = {
-                    timeH.value = it
-                },
-                label = {
-                    Text("hour")
-                },
-                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-                modifier = Modifier.weight(1f)
-            )
-
-            OutlinedTextField(
-                timeM.value,
-                onValueChange = {
-                    timeM.value = it
-                },
-                label = {
-                    Text("minute")
-                },
-                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-                modifier = Modifier.weight(1f)
-            )
-        }
-///////////////////////////
-        ///////////////
-        Text(text = "Difficulty:", modifier = Modifier.align(alignment = Alignment.Start))
-        Text(text = difficulty[sliderPositionDifficulty.toInt() - 1])
-        Slider(
-            value = sliderPositionDifficulty,
-            onValueChange = {
-                sliderPositionDifficulty = it
-                reward.value = (sliderPositionDifficulty * sliderPositionUrgency).toInt() * 10
-            },
-            steps = 1,
-            valueRange = 1f..3f
-        )
-
-        Text(text = "Urgency:", modifier = Modifier.align(alignment = Alignment.Start))
-        Text(text = Urgency[sliderPositionUrgency.toInt() - 1])
-        Slider(
-            value = sliderPositionUrgency,
-            onValueChange = {
-                sliderPositionUrgency = it
-                reward.value = (sliderPositionDifficulty * sliderPositionUrgency).toInt() * 10
-            },
-            steps = 1,
-            valueRange = 1f..3f
-        )
-        ////////////////
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        )
-        {
-            Row(
-                horizontalArrangement = Arrangement.Start,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Repeat:")
-                Checkbox(modifier = Modifier.height(intrinsicSize = IntrinsicSize.Max),
-                    checked = dailyRepeat,
-                    onCheckedChange = { dailyRepeat = it }
-                )
-            }
-            Row(
-                horizontalArrangement = Arrangement.Start,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("done:")
-                Checkbox(modifier = Modifier.height(intrinsicSize = IntrinsicSize.Max),
-                    checked = isdone,
-                    onCheckedChange = { isdone = it }
-                )
-            }
-
-            Row(
-                horizontalArrangement = Arrangement.Start,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "reward:")
-                Text(text = rewardWithtime.toString())
-            }
-        }
-
-        Text(text = "Tags:", modifier = Modifier.align(alignment = Alignment.Start))
 
         Row(
-            modifier = Modifier.fillMaxWidth().padding(10.dp),
-            horizontalArrangement = Arrangement.Start,
+            Modifier.fillMaxSize().weight(1f),
+            horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedButton(
-                { tabDialog.value = true },
-                contentPadding = PaddingValues(0.dp),
-                modifier = Modifier.padding(0.dp),
-                shape = RoundedCornerShape(20.dp)
-            ) {
-                Text("ADD", modifier = Modifier.padding(0.dp))
+                {
+                    sheetState.value = false
+                },
+                border = BorderStroke(2.dp, color = MaterialTheme.colors.primary),
+                shape = RoundedCornerShape(10.dp),
+                ) {
+                Text("close", style = MaterialTheme.typography.h6)
             }
 
-            if (tags.isNotEmpty()) {
-                tags.forEach {
-                    OutlinedButton({}, shape = RoundedCornerShape(20.dp)) {
-                        Text(it)
-                        Text("x", Modifier.clickable {
-                            tags.remove(it)
-                            isTagDelete = true
-                        }, color = Color.Red)
-                    }
+            task?.let {
+                OutlinedButton(
+                    {
+                        showtimes.value = !showtimes.value
+                    },
+                    border = BorderStroke(2.dp, color = MaterialTheme.colors.primary),
+                    shape = RoundedCornerShape(10.dp),
+                    ) {
+                    Text("recorded times", style = MaterialTheme.typography.h6)
                 }
             }
-        }
-        Row {
+
             OutlinedButton(
                 {
                     db.insertTasks(
@@ -288,22 +387,8 @@ fun taskDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, task:
                 },
                 border = BorderStroke(2.dp, color = MaterialTheme.colors.primary),
                 shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.width(IntrinsicSize.Max).padding(10.dp)
-            ) {
-                Text("Save", style = MaterialTheme.typography.h4)
-            }
-
-
-
-            OutlinedButton(
-                {
-                    sheetState.value = false
-                },
-                border = BorderStroke(2.dp, color = MaterialTheme.colors.primary),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.width(IntrinsicSize.Max).padding(10.dp)
-            ) {
-                Text("close", style = MaterialTheme.typography.h4)
+                ) {
+                Text("Save", style = MaterialTheme.typography.h6)
             }
         }
     }
