@@ -1,10 +1,11 @@
 package com.rezarashidi.common.UI
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.*
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,24 +18,44 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ExperimentalGraphicsApi
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.rezarashidi.common.Projects
 import com.rezarashidi.common.Tasks
 import com.rezarashidi.common.TodoDatabaseQueries
-import com.rezarashidi.common.getPlatformName
+import com.rezarashidi.common.network.networktasks
+import com.rezarashidi.common.network.userinfo
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import uinfo
 
 enum class sortby {
-    Default, Reward, Difficulty, Urgency, Time,Isdone
+    Default, Reward, Difficulty, Urgency, Time, Isdone
 }
-@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterialApi::class, ExperimentalFoundationApi::class)
+@OptIn(
+    ExperimentalAnimationApi::class, ExperimentalMaterialApi::class, ExperimentalFoundationApi::class,
+    ExperimentalGraphicsApi::class
+)
 @Composable
-fun taskList(db: TodoDatabaseQueries, listState: LazyListState) {
-    fun getalltask() = db.getAllTasks().executeAsList().filter { it.Del == 0L }
+fun taskList(
+    db: TodoDatabaseQueries,
+    listState: LazyListState,
+    projectmod: MutableState<Projects?>? = null,
+    network: networktasks,
+) {
+    fun getalltask() = db.getAllTasks().executeAsList().filter { it.Del == 0L }.filter {
+        return@filter if (projectmod == null) {
+            true
+        } else {
+            it.ProjectID == projectmod.value!!.id
+        }
+    }
+
     val selecttask: MutableState<Tasks?> = remember { mutableStateOf(null) }
     val scaffoldState = rememberScaffoldState(rememberDrawerState(DrawerValue.Closed))
     val scrollState = rememberScrollState()
-    val scope = rememberCoroutineScope()
+    val scope: CoroutineScope = rememberCoroutineScope()
     val openDialog = remember() { mutableStateOf(false) }
     val alpha: Float by animateFloatAsState(if (!openDialog.value) 0f else 0.5f)
     var tagPress by remember { mutableStateOf(false) }
@@ -45,32 +66,51 @@ fun taskList(db: TodoDatabaseQueries, listState: LazyListState) {
         mutableStateOf(true)
     }
     val eventchange = remember() { mutableStateOf(true) }
-    val items = listOf(sortby.Default, sortby.Difficulty, sortby.Reward, sortby.Time, sortby.Urgency,sortby.Isdone)
+    val items = listOf(sortby.Default, sortby.Difficulty, sortby.Reward, sortby.Time, sortby.Urgency, sortby.Isdone)
     var expanded by remember { mutableStateOf(false) }
     var selectedIndex by remember { mutableStateOf(0) }
-    val alltask by remember(openDialog.value, eventchange.value) { mutableStateOf(getalltask().toMutableStateList()) }
-    val newtasks = alltask.filter {
-        if (tagPress) {
-            if (it.tags == null) false else it.tags.split(",").contains(tagSelect)
-        } else if (dailyreaptSelect) {
-            it.dailyRepeat == 1L
+    val form = remember {
+        mutableStateOf(false)
+    }
+    val update = remember {
+        val x = db.getupdates().executeAsOneOrNull()
+        if (x == null) {
+            false
         } else {
-            true
+            x.ok == 1L
         }
     }
-        .sortedByDescending {
-            when (items[selectedIndex]) {
-                sortby.Default -> it.addTime
-                sortby.Urgency -> it.Urgency
-                sortby.Time -> ((it.timeInHour * 60) + it.timeInMinute)
-                sortby.Reward -> it.reward
-                sortby.Difficulty -> it.Difficulty
-                sortby.Isdone ->it.isdone
+//    println(update)
+    val alltask by remember(openDialog.value, eventchange.value) { mutableStateOf(getalltask().toMutableStateList()) }
+    val newtasks = remember(openDialog.value, eventchange.value, tagPress, dailyreaptSelect) {
+        alltask.filter {
+            if (tagPress) {
+                if (it.tags == null) false else it.tags.split(",").contains(tagSelect)
+            } else if (dailyreaptSelect) {
+                it.dailyRepeat == 1L
+            } else {
+                true
             }
         }
+            .sortedByDescending {
+                when (items[selectedIndex]) {
+                    sortby.Default -> it.addTime
+                    sortby.Urgency -> it.Urgency
+                    sortby.Time -> ((it.timeInHour * 60) + it.timeInMinute)
+                    sortby.Reward -> it.reward
+                    sortby.Difficulty -> it.Difficulty
+                    sortby.Isdone -> it.isdone
+                }
+            }.sortedBy {
+                it.isdone
+            }
+    }
     val tag = alltask.mapNotNull { tasks ->
         if (tasks.tags == null) null else tasks.tags.split(",")
     }.flatten().toSet()
+
+
+
 
 
     Box {
@@ -97,33 +137,34 @@ fun taskList(db: TodoDatabaseQueries, listState: LazyListState) {
                     )
                 }
             },
-            drawerContent = { Text(text = "drawerContent") },
+            drawerContent = { timerecordlist(db) },
             drawerShape = RoundedCornerShape(0),
             content = {
-
                 LazyColumn(state = listState) {
                     item {
                         val lazyrowscrollstate = rememberLazyListState()
 
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(10.dp,0.dp)) {
-
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(10.dp, 0.dp)) {
                             IconButton(onClick = {
-                                scope.launch {
-                                    scaffoldState.drawerState.open()
+                                if (projectmod == null) {
+                                    scope.launch {
+                                        scaffoldState.drawerState.open()
+                                    }
+                                } else {
+                                    projectmod.value = null
                                 }
-
-
                             }) {
-                                Icon(Icons.Filled.Menu, "backIcon")
+                                if (projectmod == null) {
+                                    Icon(Icons.Filled.Menu, "backIcon")
+                                } else {
+                                    Icon(Icons.Filled.ArrowBack, "backIcon")
+                                }
                             }
-                            Box (modifier = Modifier.weight(0.8f),){
+                            Box(modifier = Modifier.weight(0.8f)) {
                                 LazyRow(
-
                                     verticalAlignment = Alignment.CenterVertically, state = lazyrowscrollstate
                                 ) {
-
                                     item {
-
                                     }
                                     item {
                                         OutlinedButton({
@@ -150,7 +191,6 @@ fun taskList(db: TodoDatabaseQueries, listState: LazyListState) {
 //                                    )
 //
 //                                }
-
                             }
 
 
@@ -171,15 +211,69 @@ fun taskList(db: TodoDatabaseQueries, listState: LazyListState) {
                                         }
                                     }
                                 }
-
                             }
-
                         }
-
-
                     }
+                    item {
+                        if (update) {
+                            Card(Modifier.fillMaxWidth().padding(15.dp).clickable {
 
+                            }, elevation = 5.dp) {
+                                Row(
+                                    Modifier.fillMaxWidth().padding(10.dp),
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text("Please Update app", style = MaterialTheme.typography.h6)
+                                }
+                            }
+                        }
+                    }
+                    item {
+                        val donelist = newtasks.filter { it.isdone == 1L }
+                        if (donelist.count() >= 5) {
+                            val userinfo = db.getuserinfo().executeAsList()
 
+                            if (userinfo.isEmpty()) {
+                                if (!form.value) {
+                                    Card(Modifier.fillMaxWidth().padding(15.dp).clickable {
+                                        form.value = !form.value
+                                    }, elevation = 5.dp) {
+                                        Row(
+                                            Modifier.fillMaxWidth().padding(10.dp),
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            Text("Please fill the form", style = MaterialTheme.typography.h6)
+                                        }
+                                    }
+                                }
+                                AnimatedVisibility(form.value, enter = fadeIn() + scaleIn()) {
+                                    Card(
+                                        Modifier.fillMaxWidth().padding(15.dp),
+                                        elevation = 5.dp,
+                                        shape = RoundedCornerShape(5.dp)
+                                    ) {
+                                        uinfo(db, network, form)
+                                    }
+                                }
+                            } else {
+                                val x = userinfo.first().send
+                                val a = userinfo.first()
+
+                                if (x == null) {
+                                    LaunchedEffect(true) {
+                                        network.senduerinfo(
+                                            userinfo(
+                                                network.getuuid(), a.age, a.ac,
+                                                a.sex,
+                                                a.work,
+                                                a.remote
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     items(newtasks, key = { it.addTime }) { it ->
                         var newit by mutableStateOf(it)
@@ -188,7 +282,7 @@ fun taskList(db: TodoDatabaseQueries, listState: LazyListState) {
                             confirmStateChange = { DismissValueS ->
                                 if (DismissValueS == DismissValue.DismissedToEnd) {
                                     if (newit.isdone == 0L) {
-                                        db.getTaskdoneByid(it.id)
+                                        db.getTaskdoneByid(System.currentTimeMillis(), it.id)
                                         newit = it.copy(isdone = 1L)
                                         eventchange.value = !eventchange.value
                                     } else {
@@ -218,13 +312,13 @@ fun taskList(db: TodoDatabaseQueries, listState: LazyListState) {
                                             Icon(
                                                 Icons.Default.Delete,
                                                 contentDescription = "Localized description",
-                                                tint = Color.Cyan,
+                                                tint = Color.hsl(40F, 1F, 0.5F),
                                                 modifier = Modifier.scale(2f)
                                             )
                                         }
 
                                     if (dismissState.isDismissed(DismissDirection.EndToStart)) {
-                                        db.deleteTask(it.id)
+                                        db.deleteTask(System.currentTimeMillis(),it.id)
 //                                        alltask.remove(it)
                                     }
                                 }
@@ -276,7 +370,7 @@ fun taskList(db: TodoDatabaseQueries, listState: LazyListState) {
                 }.align(alignment = Alignment.Center).padding(20.dp)
                     .clip(shape = RoundedCornerShape(3)).background(color = Color.White)
             ) {
-                taskDetail(openDialog, db, selecttask.value)
+                taskDetail(openDialog, db, selecttask.value, projectmod?.value)
             }
         }
     }

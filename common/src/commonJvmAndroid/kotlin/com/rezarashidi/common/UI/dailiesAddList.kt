@@ -28,7 +28,7 @@ fun dailiesAddList(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries) {
     var selectedIndex by remember { mutableStateOf(0) }
     val items = listOf(sortby.Default, sortby.Difficulty, sortby.Reward, sortby.Time, sortby.Urgency)
     val projects = db.getAllProjects().executeAsList().toMutableList().apply {
-       add(0, Projects(0,"all","",0,"","",1))
+       add(0, Projects(0,"all","",0,0,"","",0))
     }
 
     var expanded by remember { mutableStateOf(false) }
@@ -44,7 +44,17 @@ fun dailiesAddList(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries) {
         }.filter {
             it.isdone == 0L
         }.filter {
-            db.getdailiessBytaskID(it.id).executeAsOneOrNull() == null
+            var x= db.getdailiessBytaskID(it.id).executeAsOneOrNull()
+            if (
+             x   == null
+
+            ){
+                true
+            }else{
+
+                x.del!=null
+            }
+
         }
             .filter {
                 if (projectid == 0L) {
@@ -73,44 +83,47 @@ fun dailiesAddList(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries) {
             Text("select Project")
             IconButton(onClick = { expanded1 = true }) {
                 Icon(Icons.Filled.Sort, "backIcon")
-            }
-            DropdownMenu(
-                expanded = expanded1,
-                onDismissRequest = { expanded1 = false },
+
+                DropdownMenu(
+                    expanded = expanded1,
+                    onDismissRequest = { expanded1 = false },
 //                modifier = Modifier.fillMaxWidth()
-            )
-            {
-                projects.forEachIndexed { index, s ->
-                    DropdownMenuItem(onClick = {
-                        expanded1 = false
-                        projectid = s.id
-                    }) {
-                        Text(text = s.Project_name)
+                )
+                {
+                    projects.forEachIndexed { index, s ->
+                        DropdownMenuItem(onClick = {
+                            expanded1 = false
+                            projectid = s.id
+                        }) {
+                            Text(text = s.Project_name)
+                        }
                     }
                 }
             }
+
 
 
 
             Text("sort by")
             IconButton(onClick = { expanded = true }) {
                 Icon(Icons.Filled.Sort, "backIcon")
-            }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
 //                modifier = Modifier.fillMaxWidth()
-            )
-            {
-                items.forEachIndexed { index, s ->
-                    DropdownMenuItem(onClick = {
-                        selectedIndex = index
-                        expanded = false
-                    }) {
-                        Text(text = s.name)
+                )
+                {
+                    items.forEachIndexed { index, s ->
+                        DropdownMenuItem(onClick = {
+                            selectedIndex = index
+                            expanded = false
+                        }) {
+                            Text(text = s.name)
+                        }
                     }
                 }
             }
+
         }
 
         if (listoftask.isEmpty()){

@@ -17,7 +17,7 @@ actual fun getPlatformName(): String {
 }
 actual class DriverFactory {
     actual fun createDriver(): SqlDriver {
-        val databasePath = File(System.getProperty("java.io.tmpdir"), "TodoDatabase6.db")
+        val databasePath = File(System.getProperty("java.io.tmpdir"), "TodoDatabase2.db")
         val driver = JdbcSqliteDriver(url = "jdbc:sqlite:${databasePath.absolutePath}")
         if(!databasePath.exists()){
             TodoDatabase.Schema.create(driver)

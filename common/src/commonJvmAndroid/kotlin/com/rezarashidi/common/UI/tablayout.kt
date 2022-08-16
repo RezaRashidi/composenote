@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.rezarashidi.common.Content
@@ -24,7 +25,7 @@ private enum class todotabs(val value: String) {
 @Composable
 fun TabLayout(projects:@Composable () -> Unit,tasks:@Composable () -> Unit,dailies:@Composable () -> Unit,db: TodoDatabaseQueries) {
     val tabsName = remember { todotabs.values().map { it.value } }
-    val selectedIndex = remember { mutableStateOf(1) }
+    val selectedIndex = rememberSaveable() { mutableStateOf(1) }
     val icons = listOf(Icons.Default.Info, Icons.Default.Person, Icons.Default.ShoppingCart)
 
     Column {

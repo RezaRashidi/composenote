@@ -15,7 +15,7 @@ import com.rezarashidi.common.AppPreview
 
 
 fun main() = application {
-    Window(onCloseRequest = ::exitApplication) {
+    Window(onCloseRequest = ::exitApplication, title = "Compose note") {
         AppPreview()
     }
 }

@@ -9,121 +9,115 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.arkivanov.essenty.lifecycle.LifecycleOwner
 import com.rezarashidi.common.TodoDatabaseQueries
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 import kotlinx.datetime.*
+import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 
 class TimerData(val min: Int = 0) {
     private var startTime = Clock.System.now()
 
     init {
-
         startTime = Clock.System.now()
     }
     @OptIn(ExperimentalTime::class)
     fun passtime(): DateTimePeriod {
-
-
         return Clock.System.now().minus(startTime).toDateTimePeriod()
-
-
     }
+
     fun getSecend() = passtime().seconds
     fun getMinute() = passtime().minutes
     fun gethour() = passtime().hours
 }
 
 class Countdwontimer(val min: Int = 0) {
-     var startTime = 0L
-    var lasttime= Instant.fromEpochSeconds(startTime).toLocalDateTime(TimeZone.UTC)
-    init {
-        startTime= min * 60L
+    var startTime = 0L
+    var lasttime = Instant.fromEpochSeconds(startTime).toLocalDateTime(TimeZone.UTC)
 
+    init {
+        startTime = min * 60L
     }
 
     fun passtime(): LocalDateTime {
-
-        lasttime=Instant.fromEpochSeconds(startTime).toLocalDateTime(TimeZone.UTC)
+        lasttime = Instant.fromEpochSeconds(startTime).toLocalDateTime(TimeZone.UTC)
         startTime -= 1L
         return lasttime
     }
+
     fun getSecend() = passtime().second
     fun getMinute() = lasttime.minute
     fun gethour() = lasttime.hour
 }
 
+fun timernew(scope: CoroutineScope, puase: Boolean, min: Int = 0) {
+}
+@OptIn(ExperimentalTime::class)
 @Composable
-fun TimerView(min: Int = 0, db: TodoDatabaseQueries, showbuttom: MutableState<Boolean>,taskid:Long) {
+fun TimerView(min: Int = 0, db: TodoDatabaseQueries, showbuttom: MutableState<Boolean>, taskid: Long) {
     var puase by remember {
         mutableStateOf(true)
     }
-    val timer = remember { TimerData() }
-    val countdwontimer = remember { Countdwontimer(min) }
+    var timer by remember { mutableStateOf(0) }
+    val scope= rememberCoroutineScope()
+    DisposableEffect(true) {
+        var time = min * 60
+        scope.launch {
 
-    val Secend by produceState(timer.getSecend(),puase) {
+            while (puase) {
+                if (min > 0) {
+                    time--
+                    delay(1000)
+                } else {
+                    time++
+                    delay(1000)
+                }
 
-        while (puase) {
-
-            if (min > 0) {
-                value = countdwontimer.getSecend()
-            } else {
-                value = timer.getSecend()
-            }
-            delay(1000)
-        }
-
-    }
-    val minute by produceState(timer.getMinute(),puase) {
-
-        while (puase) {
-
-
-
-
-            if (min > 0) {
-                value = countdwontimer.getMinute()
-            } else {
-                value = timer.getMinute()
+                timer = time
             }
 
-            delay(1000 * 60)
-
         }
 
-    }
-    val hour by produceState(timer.gethour(),puase) {
-
-        while (puase) {
-
-            if (min > 0) {
-                value = countdwontimer.gethour()
+        onDispose {
+            val passtime = if (min > 0) {
+                min * 60 - timer
             } else {
-                value = timer.gethour()
+                timer
             }
-            delay(1000 * 60 * 60)
-        }
 
+            db.insertTimerecord(
+                null,
+                taskid,
+                passtime.toLong(),
+                Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).toString()
+            )
+        }
+    }
+    val durtion = remember(timer) {
+        Duration.seconds(timer)
     }
 
+    durtion.toComponents { hours, minutes, seconds, nanoseconds ->
+//        println("$hours : $minutes : $seconds")
+        Text("$hours : $minutes : $seconds", style = MaterialTheme.typography.h5, modifier = Modifier.border(
+            3.dp, MaterialTheme.colors.primary,
+            AbsoluteRoundedCornerShape(8.dp)
+        ).padding(8.dp).clickable {
+            val passtime = if (min > 0) {
+                min * 60 - timer
+            } else {
+                timer
+            }
 
-
-
-    Text("$hour : $minute : $Secend", style = MaterialTheme.typography.h5, modifier = Modifier.border(
-        3.dp, MaterialTheme.colors.primary,
-        AbsoluteRoundedCornerShape(8.dp)
-    ).padding(8.dp).clickable {
-        val passtime= if(min>0){
-            min *60  - ((countdwontimer.getMinute()*60) +countdwontimer.getSecend() )
-
-        }else{
-            (timer.gethour() * 60*60) + (timer.getMinute()*60) +timer.getSecend()
-        }
-
-        db.insertTimerecord(null,taskid,passtime.toLong(),Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).toString())
-        puase=!puase
-        showbuttom.value=true
-    })
-
-
+            db.insertTimerecord(
+                null,
+                taskid,
+                passtime.toLong(),
+                Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).toString()
+            )
+            puase = !puase
+            showbuttom.value = true
+        })
+    }
 }

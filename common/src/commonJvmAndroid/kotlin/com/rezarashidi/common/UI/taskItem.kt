@@ -39,6 +39,46 @@ fun taskItem(
     val timeM = remember() { Task.timeInMinute }
     val timeH = remember() { Task.timeInHour }
     val levels = listOf<String>("Low", "Medium", "High")
+    val Project: String by remember {
+        mutableStateOf(
+            if(Task.ProjectID!=null){
+
+                    var x: String = ""
+
+                    try {
+                         x=  db.getProjectByID(Task.ProjectID).executeAsOne().Project_name
+                    } catch (
+                        _: Exception,
+                    ) {
+                        db.insertTasks(
+                            Task.id,
+                            Task.Task_name,
+                            Task.Descreption,
+                            null,
+                            Task.Difficulty,
+                            Task.Urgency,
+                            Task.timeInHour,
+                            Task.timeInMinute,
+                            Task.dailyRepeat,
+                            Task.tags,
+                            Task.reward,
+                            Task.isdone,
+                            Task.addTime,
+                            Task.Del,
+                            Task.sentadd, Task.sentdone, Task.sentdone,Task.sendel
+                        )
+                    }
+                    x
+
+            }else{
+                ""
+            }
+
+
+
+        )
+    }
+
     val showbuttom: MutableState<Boolean> = remember {
         mutableStateOf(true)
     }
@@ -90,8 +130,11 @@ fun taskItem(
                     modifier = Modifier.padding(20.dp,10.dp,20.dp,0.dp).fillMaxWidth()
                 ) {
                     Column {
-                        Text(taskName, style = MaterialTheme.typography.h4)
+                        Row( verticalAlignment = Alignment.CenterVertically) {
+                            Text(taskName, style = MaterialTheme.typography.h4)
+                            Text(Project, style = MaterialTheme.typography.subtitle1, modifier = Modifier.padding(10.dp,0.dp))
 
+                        }
 
                         Text(
                             "$timeH:$timeM:0 / " + "${spendtimeH}:${spendtimeM}:${spendtimeS}",
@@ -103,7 +146,13 @@ fun taskItem(
                         OutlinedButton(
                             onClick = {
                                 if (addmode) {
-                                    db.insertdailiess(null, Task.id, Clock.System.now().toEpochMilliseconds())
+                                    val x=db.getdailiessBytaskID(Task.id).executeAsOneOrNull()
+                                    if (x==null){
+                                        db.insertdailiess(null, Task.id, System.currentTimeMillis(),null)
+                                    }else{
+                                        db.restordailiess(System.currentTimeMillis(),Task.id)
+                                    }
+
                                     listoftask?.remove(Task)
                                     if (listoftask?.isEmpty() == true) {
                                         sheetState?.value = !sheetState?.value!!

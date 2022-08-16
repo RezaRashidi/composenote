@@ -14,6 +14,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
+                
                 val db = remember { TodoDatabase(DriverFactory(this).createDriver()).todoDatabaseQueries}
 
                 App(db)

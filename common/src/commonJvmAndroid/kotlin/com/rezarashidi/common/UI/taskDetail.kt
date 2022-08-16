@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.rezarashidi.common.Projects
 import com.rezarashidi.common.Tasks
 import com.rezarashidi.common.TodoDatabaseQueries
 import com.vanpra.composematerialdialogs.MaterialDialog
@@ -22,12 +23,18 @@ import com.vanpra.composematerialdialogs.datetime.time.timepicker
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import kotlinx.coroutines.launch
 import kotlinx.datetime.toLocalDateTime
+import kotlin.math.floor
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalTime::class)
 @Composable
-fun taskDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, task: Tasks? = null) {
+fun taskDetail(
+    sheetState: MutableState<Boolean>,
+    db: TodoDatabaseQueries,
+    task: Tasks? = null,
+    projectmod: Projects? = null,
+) {
     val taskName = remember { mutableStateOf(TextFieldValue(task?.Task_name ?: "")) }
     val descreption = remember { mutableStateOf(TextFieldValue(task?.Descreption ?: "")) }
     val tag = remember { mutableStateOf(TextFieldValue()) }
@@ -39,16 +46,35 @@ fun taskDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, task:
             task.tags?.let { tags.addAll(it.split(",")) }
         }
     }
-    val timeM = remember { mutableStateOf(TextFieldValue(task?.timeInHour?.toString() ?: "0")) }
-    val timeH = remember { mutableStateOf(TextFieldValue(task?.timeInHour?.toString() ?: "0")) }
+    val timeM = remember { mutableStateOf(TextFieldValue(task?.timeInMinute?.toString() ?: "0")) }
+    val timeH = remember { mutableStateOf(TextFieldValue(task?.timeInHour?.toString() ?: "1")) }
     val difficulty = listOf<String>("Low", "Medium", "High")
     val Urgency = listOf<String>("Low", "Medium", "High")
     var sliderPositionDifficulty by remember { mutableStateOf(task?.Difficulty?.toFloat() ?: 1F) }
     var sliderPositionUrgency by remember { mutableStateOf(task?.Urgency?.toFloat() ?: 1F) }
-    var reward = remember { mutableStateOf(task?.reward?.toInt() ?: 0) }
-    val timeHH = timeH.value.text.toIntOrNull()?.times(60) ?: 0
+    val timeHH = timeH.value.text.toIntOrNull() ?: 0
     val timeMM = timeM.value.text.toIntOrNull() ?: 0
-    val rewardWithtime = reward.value + timeHH + timeMM
+    val reward = derivedStateOf {
+        val Difficulty = when (sliderPositionDifficulty) {
+            1F -> 1F
+            in 1F..2f -> 1.5F
+            in 2f..3f -> 2F
+            else -> 1F
+        }
+        val Urgency = when (sliderPositionUrgency) {
+            1F -> 1F
+            in 1F..2f -> 1.5F
+            in 2f..3f -> 2F
+            else -> 1F
+        }
+        val rewardwithtime = (Difficulty * Urgency) * ((timeHH * 60) + timeMM)
+        val descreption = if (descreption.value.text.isNotEmpty()) 5 else 0
+        val tagreward = tags.count() * 2
+        val totalpoint = rewardwithtime + ((rewardwithtime / 100) * (descreption + tagreward))
+
+        return@derivedStateOf floor(totalpoint.toDouble()).toInt()
+    }
+    val rewardWithtime = reward.value
     var dailyRepeat by remember { mutableStateOf((task?.dailyRepeat == 1L)) }
     var isdone by remember { mutableStateOf((task?.isdone == 1L)) }
     val scope = rememberCoroutineScope()
@@ -63,13 +89,47 @@ fun taskDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, task:
         x.add(0, "select project" to null)
         return@remember x
     }
-    var selectedProjectIndex by remember {
-        mutableStateOf(task?.ProjectID?.let { id ->
-            val x = projectlist.first {
-                it.second == id
-            }.first
-            projectlist.indexOf(x to id)
-        } ?: 0)
+    var selectedProjectIndex: Int by remember {
+        mutableStateOf(
+            if (projectmod == null) {
+                task?.ProjectID?.let { id ->
+                    var x: Int = 0
+
+                    try {
+                        val xr = projectlist.first {
+                            it.second == id
+                        }
+                        x = projectlist.indexOf(xr)
+                    } catch (
+                        _: Exception,
+                    ) {
+                        db.insertTasks(
+                            task.id,
+                            task.Task_name,
+                            task.Descreption,
+                            null,
+                            task.Difficulty,
+                            task.Urgency,
+                            task.timeInHour,
+                            task.timeInMinute,
+                            task.dailyRepeat,
+                            task.tags,
+                            task.reward,
+                            task.isdone,
+                            task.addTime,
+                            task.Del,
+                            task.Donedate,
+                            task.sentadd, task.sentdone, task.sentdone
+                        )
+                    }
+
+
+                    x
+                } ?: 0
+            } else {
+                projectlist.indexOf(projectmod.Project_name to projectmod.id)
+            }
+        )
     }
 
 
@@ -204,7 +264,7 @@ fun taskDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, task:
                             value = sliderPositionDifficulty,
                             onValueChange = {
                                 sliderPositionDifficulty = it
-                                reward.value = (sliderPositionDifficulty * sliderPositionUrgency).toInt() * 10
+//                                reward.value = (sliderPositionDifficulty * sliderPositionUrgency).toInt() * 10
                             },
                             steps = 1,
                             valueRange = 1f..3f
@@ -224,7 +284,7 @@ fun taskDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, task:
                             value = sliderPositionUrgency,
                             onValueChange = {
                                 sliderPositionUrgency = it
-                                reward.value = (sliderPositionDifficulty * sliderPositionUrgency).toInt() * 10
+//                                reward.value = (sliderPositionDifficulty * sliderPositionUrgency).toInt() * 10
                             },
                             steps = 1,
                             valueRange = 1f..3f
@@ -320,15 +380,15 @@ fun taskDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, task:
 
                     times.forEach {
                         Card(elevation = 5.dp, modifier = Modifier.padding(10.dp)) {
-                            Row(modifier = Modifier.padding(10.dp)) {
+                            Column(modifier = Modifier.padding(10.dp)) {
                                 val date = it.date.toLocalDateTime()
-                                Text("Date:" + date.date.toString())
-                                Text("          Start Time:${date.hour}h:${date.minute}m:${date.second}s          ")
+
+                                Text("Start:" + date.date.toString() + ":${date.hour}h:${date.minute}m:${date.second}s")
                                 val duration = Duration.seconds(it.lenth)
 
                                 duration.toComponents { days, hours, minutes, seconds, nanoseconds ->
                                     Text(
-                                        " Duration: ${hours}h:${minutes}m:${seconds}s"
+                                        "Duration: ${hours}h:${minutes}m:${seconds}s"
                                     )
                                 }
                             }
@@ -349,7 +409,7 @@ fun taskDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, task:
                 },
                 border = BorderStroke(2.dp, color = MaterialTheme.colors.primary),
                 shape = RoundedCornerShape(10.dp),
-                ) {
+            ) {
                 Text("close", style = MaterialTheme.typography.h6)
             }
 
@@ -360,12 +420,14 @@ fun taskDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, task:
                     },
                     border = BorderStroke(2.dp, color = MaterialTheme.colors.primary),
                     shape = RoundedCornerShape(10.dp),
-                    ) {
+                ) {
                     Text("recorded times", style = MaterialTheme.typography.h6)
                 }
             }
 
             OutlinedButton(
+                enabled = taskName.value.text.isNotEmpty(),
+                onClick =
                 {
                     db.insertTasks(
                         task?.id,
@@ -377,17 +439,22 @@ fun taskDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, task:
                         timeH.value.text.toLong(),
                         timeM.value.text.toLong(),
                         dailyRepeat.let { if (it) return@let 1L else 0L },
-                        if (tags.isNotEmpty()) tags.joinToString(",") else null, rewardWithtime.toLong(),
+                        if (tags.isNotEmpty()) tags.joinToString(",") else null,
+                        rewardWithtime.toLong(),
                         if (isdone) 1 else 0,
-                        System.nanoTime(),
-                        0
+                        task?.addTime ?: System.currentTimeMillis(),
+                        0,
+                        task?.Donedate,
+                        task?.sentadd,task?.sentdone,task?.sendel,
+
+
                     )
 
                     sheetState.value = false
                 },
                 border = BorderStroke(2.dp, color = MaterialTheme.colors.primary),
                 shape = RoundedCornerShape(10.dp),
-                ) {
+            ) {
                 Text("Save", style = MaterialTheme.typography.h6)
             }
         }

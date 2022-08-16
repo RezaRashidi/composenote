@@ -22,17 +22,21 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 @Composable
-fun projectDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, Project: MutableState<Projects?>? = null) {
-
+fun projectDetail(
+    sheetState: MutableState<Boolean>,
+    db: TodoDatabaseQueries,
+    Project: MutableState<Projects?>? = null,
+) {
     val projectName = remember { mutableStateOf(TextFieldValue(Project?.value?.Project_name ?: "")) }
     val descreption = remember { mutableStateOf(TextFieldValue(Project?.value?.Descreption ?: "")) }
     val dateStart = remember { mutableStateOf(Project?.value?.Startdate ?: "") }
     val dateEnd = remember { mutableStateOf(Project?.value?.Enddate ?: "") }
+    val Urgency = listOf<String>("Low", "Medium", "High")
+    var sliderPositionUrgency by remember { mutableStateOf(Project?.value?.Urgency?.toFloat() ?: 1F) }
     val pritoritynames = listOf<String>("Low", "Medium", "High")
     var sliderPosition by remember { mutableStateOf(Project?.value?.Pritority?.toFloat() ?: 1f) }
     val dialogStateStart = rememberMaterialDialogState()
     val dialogStateEnd = rememberMaterialDialogState()
-    var isdone by remember { mutableStateOf((Project?.value?.isdone == 1L)) }
     val scope = rememberCoroutineScope()
 //     val db= Projects()
     Column(
@@ -54,6 +58,22 @@ fun projectDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, Pr
         Text(text = pritoritynames[sliderPosition.toInt() - 1])
         Slider(value = sliderPosition, onValueChange = { sliderPosition = it }, steps = 1, valueRange = 1f..3f)
 
+        Row(modifier = Modifier.align(alignment = Alignment.Start)) {
+            Text(text = "Urgency: ")
+            Text(text = Urgency[sliderPositionUrgency.toInt() - 1])
+        }
+
+
+        Slider(
+            value = sliderPositionUrgency,
+            onValueChange = {
+                sliderPositionUrgency = it
+
+            },
+            steps = 1,
+            valueRange = 1f..3f
+        )
+
         Text(text = "start Date:", modifier = Modifier.align(alignment = Alignment.Start))
 
         MaterialDialog(dialogState = dialogStateStart, buttons = {
@@ -65,13 +85,11 @@ fun projectDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, Pr
             }
         }
         OutlinedTextField(dateStart.value, onValueChange = {
-
         }, label = {
             Text("Start date")
         }, readOnly = true, enabled = false, modifier = Modifier.fillMaxWidth().padding(10.dp).clickable {
             scope.launch {
-                dialogStateStart .show()
-
+                dialogStateStart.show()
             }
         })
 
@@ -87,36 +105,34 @@ fun projectDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, Pr
         }
 
         OutlinedTextField(dateEnd.value, onValueChange = {
-
         }, label = {
             Text("date")
         }, readOnly = true, enabled = false, modifier = Modifier.fillMaxWidth().padding(10.dp).clickable {
             scope.launch {
                 dialogStateEnd.show()
-
             }
         })
 
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(10.dp),
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Is done:")
-            Checkbox(modifier = Modifier.height(intrinsicSize = IntrinsicSize.Max),
-                checked = isdone,
-                onCheckedChange = { isdone = it }
-            )
-        }
+
 
         Row {
-
             OutlinedButton(
                 {
-
                     scope.launch {
+                    }
 
-
+                    sheetState.value = false
+                    Project?.value = null
+                },
+                border = BorderStroke(2.dp, color = MaterialTheme.colors.primary),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.width(IntrinsicSize.Max).padding(10.dp)
+            ) {
+                Text("close", style = MaterialTheme.typography.h5)
+            }
+            OutlinedButton(
+                {
+                    scope.launch {
                     }
 
                     db.insertProject(
@@ -124,43 +140,27 @@ fun projectDetail(sheetState: MutableState<Boolean>, db: TodoDatabaseQueries, Pr
                         projectName.value.text,
                         descreption.value.text,
                         sliderPosition.toLong(),
-                       if (dateStart.value=="") Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString() else dateStart.value,
-                        if (dateEnd.value=="")null else dateEnd.value,
-                        if (isdone) 1 else 0
+                        sliderPositionUrgency.toLong(),
+                        if (dateStart.value == "") Clock.System.now()
+                            .toLocalDateTime(TimeZone.currentSystemDefault()).date.toString() else dateStart.value,
+                        if (dateEnd.value == "") null else dateEnd.value,
+
+                        System.currentTimeMillis()
                     )
 
                     sheetState.value = false
-                    Project?.value=null
-
+                    Project?.value = null
                 },
                 border = BorderStroke(2.dp, color = MaterialTheme.colors.primary),
                 shape = RoundedCornerShape(10.dp),
                 modifier = Modifier.width(IntrinsicSize.Max).padding(10.dp)
             ) {
-                Text("Save", style = MaterialTheme.typography.h4)
+                Text("Save", style = MaterialTheme.typography.h5)
+
+
             }
 
-            OutlinedButton(
-                {
-
-                    scope.launch {
-
-
-                    }
-
-                    sheetState.value = false
-                    Project?.value=null
-
-                },
-                border = BorderStroke(2.dp, color = MaterialTheme.colors.primary),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.width(IntrinsicSize.Max).padding(10.dp)
-            ) {
-                Text("close", style = MaterialTheme.typography.h4)
-            }
 
         }
     }
-
-
 }

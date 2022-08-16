@@ -3,14 +3,13 @@ CREATE TABLE IF NOT EXISTS Projects (
   Project_name TEXT NOT NULL,
   Descreption TEXT NOT NULL,
   Pritority INTEGER NOT NULL,
+  Urgency INTEGER NOT NULL,
   Startdate  TEXT NOT NULL,
   Enddate  TEXT,
-  isdone INTEGER NOT NULL
+  addtime INTEGER NOT NULL
 
 );
 
-getProjectdoneByid:
-UPDATE Projects SET isdone =1 WHERE id=:id;
 -- INSERT INTO Projects (id,Project_name,Descreption,Pritority,Due_Date)
 --  VALUES (100,"Project_name","Descreption","Pritority","Due_Date");
 
@@ -22,7 +21,7 @@ getProjectByID:
 SELECT * FROM Projects WHERE id = :id;
 
 insertProject:
-INSERT OR REPLACE  INTO Projects VALUES (?,?,?,?,?,?,?);
+INSERT OR REPLACE  INTO Projects VALUES (?,?,?,?,?,?,?,?);
 
 deleteProject:
 DELETE FROM Projects WHERE id = :id;
@@ -42,9 +41,18 @@ CREATE TABLE IF NOT EXISTS Tasks (
   reward INTEGER NOT NULL,
   isdone INTEGER NOT NULL,
   addTime INTEGER NOT NULL,
-  Del INTEGER NOT NULL
+  Del INTEGER NOT NULL,
+  Donedate INTEGER,
+  sentadd INTEGER,
+  sentdone INTEGER,
+  sendel INTEGER
 );
-
+sendaddtask:
+UPDATE Tasks SET sentadd =1 WHERE id=:id;
+senddonetask:
+UPDATE Tasks SET sentdone =1 WHERE id=:id;
+sendeltask:
+UPDATE Tasks SET sendel =1 WHERE id=:id;
 
 getAllTasks:
 SELECT *
@@ -54,19 +62,20 @@ getTasksByID:
 SELECT * FROM Tasks WHERE id = :id;
 
 deleteTask:
-UPDATE Tasks SET Del =1 WHERE id=:id;
+UPDATE Tasks SET Del =:deldate WHERE id=:id;
 
 
 insertTasks:
-INSERT OR REPLACE  INTO Tasks VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?);
+INSERT OR REPLACE  INTO Tasks VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);
 
 getTasksByProjectID:
 SELECT * FROM Tasks WHERE ProjectID = :id;
 
 getTaskdoneByid:
-UPDATE Tasks SET isdone =1 WHERE id=:id;
+UPDATE Tasks SET isdone =1 , Donedate=:donedate WHERE id=:id;
 getTaskundoneByid:
-UPDATE Tasks SET isdone =0 WHERE id=:id;
+UPDATE Tasks SET isdone =0 , Donedate=NULL WHERE id=:id;
+
 getTasksBytagID:
 SELECT * FROM Tasks WHERE tags LIKE ('% ' || :tag) OR tags LIKE (:tag || ' %');
 
@@ -94,7 +103,8 @@ SELECT * FROM Timerecord WHERE TaskID = :id;
 CREATE TABLE IF NOT EXISTS dailiess (
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   TaskID INTEGER NOT NULL,
-  DateAdd INTEGER NOT NULL
+  DateAdd INTEGER NOT NULL,
+  del INTEGER
 );
 
 getAlldailiess:
@@ -102,10 +112,113 @@ SELECT *
 FROM dailiess;
 
 insertdailiess:
-INSERT OR REPLACE  INTO dailiess VALUES (?,?,?);
-
+INSERT OR REPLACE  INTO dailiess VALUES (?,?,?,?);
+restordailiess:
+UPDATE dailiess SET DateAdd=:date ,  del =NULL  WHERE TaskID=:id;
 getdailiessBytaskID:
 SELECT * FROM dailiess WHERE TaskID = :id;
 
 deletedailiess:
-DELETE FROM dailiess WHERE TaskID = :id;
+UPDATE dailiess SET del =1 WHERE TaskID=:id;
+
+
+CREATE TABLE IF NOT EXISTS networktask (
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  Date INTEGER NOT NULL
+);
+getAllnetworktask:
+SELECT * FROM networktask;
+
+insertnetworktask:
+INSERT OR REPLACE  INTO networktask VALUES (?,?);
+
+
+CREATE TABLE IF NOT EXISTS user (
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+   username TEXT,
+   uuid TEXT NOT NULL
+ );
+
+insertuser:
+INSERT OR REPLACE  INTO user VALUES (?,?,?);
+
+getuser:
+SELECT * FROM user ;
+
+updateusername:
+UPDATE user SET username =:username WHERE id=1;
+
+
+CREATE TABLE IF NOT EXISTS sendlist (
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+   date TEXT  NOT NULL,
+   type INTEGER NOT NULL
+ );
+getsendlist:
+SELECT * FROM sendlist;
+
+
+getsendlistBydate:
+SELECT * FROM sendlist WHERE date = :date;
+insertsendlist:
+INSERT OR REPLACE  INTO sendlist VALUES (?,?,?);
+
+CREATE TABLE IF NOT EXISTS userinfo (
+   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+   age INTEGER NOT NULL,
+   ac INTEGER NOT NULL,
+   sex INTEGER NOT NULL,
+   work INTEGER NOT NULL,
+   remote INTEGER NOT NULL,
+   send TEXT
+ );
+ insertuserinfo:
+ INSERT OR REPLACE  INTO userinfo VALUES (?,?,?,?,?,?,?);
+
+ getuserinfo:
+ SELECT * FROM userinfo ;
+
+
+CREATE TABLE IF NOT EXISTS updates (
+   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+   ok INTEGER NOT NULL
+ );
+
+  insertupdates:
+  INSERT OR REPLACE  INTO updates VALUES (?,?);
+
+
+ getupdates:
+ SELECT * FROM updates ;
+
+
+ CREATE TABLE IF NOT EXISTS other (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    n1n INTEGER ,
+    n2n INTEGER ,
+    n3n INTEGER ,
+    n4n INTEGER ,
+    n5n INTEGER ,
+    n7n TEXT,
+    n8n TEXT,
+    n9n TEXT,
+    n10n TEXT
+  );
+
+    insertother:
+    INSERT OR REPLACE  INTO other VALUES (?,?,?,?,?,?,?,?,?,?);
+
+     getother:
+     SELECT * FROM other ;
+CREATE TABLE IF NOT EXISTS leaderbordranking (
+   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+   rank INTEGER NOT NULL,
+   in0ex REAL AS Float  NOT NULL
+ );
+
+
+  insertleaderbordranking:
+  INSERT OR REPLACE  INTO leaderbordranking VALUES (?,?,?);
+
+   getleaderbordranking:
+   SELECT * FROM leaderbordranking ;
